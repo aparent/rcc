@@ -1,16 +1,27 @@
+module ParseJanus
+  ( parseJanus
+  , ModOp
+  , ABinOp
+  , BBinOp
+  , RBinOp
+  , AExpr
+  , BExpr
+  , Stmt
+  ) where
+ 
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
 import Control.Applicative hiding ((<|>))
 
---reversible modification operators
+-- | Reversible modification operators
 data ModOp = AddM
            | SubM
            | XorM
              deriving (Show)
 
---arithmetic binary operators
+-- | Arithmetic binary operators
 data ABinOp = Add
             | Sub
             | Xor
@@ -21,12 +32,12 @@ data ABinOp = Add
             | Or
             deriving (Show)
 
---binary operators
+-- | Binary operators
 data BBinOp = BAnd
             | BOr
               deriving (Show)
 
--- Relational operators
+-- | Relational operators
 data RBinOp = RGT
             | RLT
             | RGTE
@@ -50,10 +61,6 @@ data Stmt = ModStmt String ModOp AExpr
           | ModIndStmt String Integer ModOp AExpr
           | IfElse BExpr Stmt Stmt BExpr
           | Seq [Stmt]
-            deriving (Show)
-
-data Decl = VarD String
-          | VarIndD String Integer
             deriving (Show)
 
 languageDef =
@@ -94,6 +101,7 @@ whiteSpace = Token.whiteSpace lexer
 
 type Parser = Parsec String ()
 
+parseJanus :: String -> Either ParseError Stmt
 parseJanus = parse janus ""
 
 janus :: Parser Stmt
@@ -138,11 +146,17 @@ bExpression = buildExpressionParser bOperators bTerm
 aOperators = [
               [
                 Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
-                Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft
+                Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft,
+                Infix (reservedOp "%" >> return (ABinary Mod)) AssocLeft
               ],
               [
                 Infix (reservedOp "+" >> return (ABinary Add)) AssocLeft,
                 Infix (reservedOp "-" >> return (ABinary Sub)) AssocLeft
+              ],
+              [
+                Infix (reservedOp "&" >> return (ABinary And)) AssocLeft,
+                Infix (reservedOp "^" >> return (ABinary Xor)) AssocLeft,
+                Infix (reservedOp "|" >> return (ABinary Or)) AssocLeft
               ]
             ]
 
@@ -165,5 +179,9 @@ rExpression =
      op <- relation
      a2 <- aExpression
      return $ RBinary op a1 a2
-  where relation = (reservedOp ">" >> return RGT) <|>
-                   (reservedOp "<" >> return RLT)
+  where relation = (reservedOp ">"  >> return RGT ) <|>
+                   (reservedOp "<"  >> return RLT ) <|>
+                   (reservedOp "<=" >> return RLTE) <|>
+                   (reservedOp ">=" >> return RGTE) <|>
+                   (reservedOp "!=" >> return RNE ) <|>
+                   (reservedOp "="  >> return RE  )
