@@ -1,0 +1,169 @@
+import Text.Parsec
+import Text.Parsec.Expr
+import Text.Parsec.Language
+import qualified Text.Parsec.Token as Token
+import Control.Applicative hiding ((<|>))
+
+--reversible modification operators
+data ModOp = AddM
+           | SubM
+           | XorM
+             deriving (Show)
+
+--arithmetic binary operators
+data ABinOp = Add
+            | Sub
+            | Xor
+            | Mult
+            | Div
+            | Mod
+            | And
+            | Or
+            deriving (Show)
+
+--binary operators
+data BBinOp = BAnd
+            | BOr
+              deriving (Show)
+
+-- Relational operators
+data RBinOp = RGT
+            | RLT
+            | RGTE
+            | RLTE
+            | RNE
+            | RE
+              deriving (Show)
+
+data AExpr = ConstInt Integer
+           | Var String
+           | VarInd String Integer
+           | ABinary ABinOp AExpr AExpr
+             deriving (Show)
+
+data BExpr = BBinary BBinOp BExpr BExpr
+           | RBinary RBinOp AExpr AExpr
+             deriving (Show)
+
+--TODO: loops and such
+data Stmt = ModStmt String ModOp AExpr
+          | ModIndStmt String Integer ModOp AExpr
+          | IfElse BExpr Stmt Stmt BExpr
+          | Seq [Stmt]
+            deriving (Show)
+
+data Decl = VarD String
+          | VarIndD String Integer
+            deriving (Show)
+
+languageDef =
+  emptyDef { Token.commentStart = "/*"
+            , Token.commentEnd  = "*/"
+            , Token.commentLine = "//"
+            , Token.identStart  = letter
+            , Token.identLetter = alphaNum
+            , Token.reservedNames = [ "if"
+                                      , "fi"
+                                      , "then"
+                                      , "else"
+                                      , "while"
+                                      , "from"
+                                      , "loop"
+                                      , "do"
+                                      , "until"
+                                      , "call"
+                                      , "uncall"
+                                      , "skip"
+                                      ]
+            , Token.reservedOpNames = ["-=", "+=", "^="
+                                      , "+", "-", "*", "^", "%", "/", "&", "|"
+                                      , "=" , "<=", ">=", "!=", "<", ">"
+                                      , "||", "&&"
+                                      ]
+            }
+
+lexer = Token.makeTokenParser languageDef
+identifier = Token.identifier lexer
+reserved   = Token.reserved   lexer
+reservedOp = Token.reservedOp lexer
+brackets   = Token.brackets   lexer
+parens     = Token.parens     lexer
+integer    = Token.integer    lexer
+semi       = Token.semi       lexer
+whiteSpace = Token.whiteSpace lexer
+
+type Parser = Parsec String ()
+
+parseJanus = parse janus ""
+
+janus :: Parser Stmt
+janus = whiteSpace >> statement
+
+statement :: Parser Stmt
+statement = parens statement <|>
+            sequenceOfStmt
+  where sequenceOfStmt =
+          do list <- sepBy1 statement' semi
+             return $ if length list == 1 then head list else Seq list
+        statement' = modStatment <|>
+                     ifElseStatment
+
+modStatment :: Parser Stmt
+modStatment = try (ModIndStmt <$> identifier
+                              <*> brackets constant
+                              <*> modOp
+                              <*> aExpression)
+          <|> (ModStmt <$> identifier
+                       <*> modOp
+                       <*> aExpression)
+  where modOp = (reservedOp "+=" >> return AddM) <|>
+                (reservedOp "-=" >> return SubM) <|>
+                (reservedOp "^=" >> return XorM)
+
+ifElseStatment :: Parser Stmt
+ifElseStatment = IfElse <$> (reserved "if"   *> bExpression)
+                        <*> (reserved "then" *> statement)
+                        <*> (reserved "else" *> statement)
+                        <*> (reserved "fi"   *> bExpression)
+
+constant = rd <$> many1 digit
+  where rd = read :: String -> Integer
+
+aExpression :: Parser AExpr
+aExpression = buildExpressionParser aOperators aTerm
+
+bExpression :: Parser BExpr
+bExpression = buildExpressionParser bOperators bTerm
+
+aOperators = [
+              [
+                Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
+                Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft
+              ],
+              [
+                Infix (reservedOp "+" >> return (ABinary Add)) AssocLeft,
+                Infix (reservedOp "-" >> return (ABinary Sub)) AssocLeft
+              ]
+            ]
+
+bOperators = [
+              [
+                Infix (reservedOp "&&" >> return (BBinary BAnd)) AssocLeft,
+                Infix (reservedOp "||" >> return (BBinary BOr)) AssocLeft
+              ]
+             ]
+
+aTerm = parens aExpression <|>
+        Var <$> identifier <|>
+        ConstInt <$> integer
+
+bTerm = parens bExpression <|>
+        rExpression
+
+rExpression =
+  do a1 <- aExpression
+     op <- relation
+     a2 <- aExpression
+     return $ RBinary op a1 a2
+  where relation = (reservedOp ">" >> return RGT) <|>
+                   (reservedOp "<" >> return RLT)
