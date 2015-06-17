@@ -63,6 +63,10 @@ data Stmt = ModStmt String ModOp AExpr
           | Seq [Stmt]
             deriving (Show)
 
+type Decl = [String]
+
+type Janus = (Decl,Stmt)
+
 languageDef =
   emptyDef { Token.commentStart = "/*"
             , Token.commentEnd  = "*/"
@@ -101,17 +105,22 @@ whiteSpace = Token.whiteSpace lexer
 
 type Parser = Parsec String ()
 
-parseJanus :: String -> Either ParseError Stmt
-parseJanus = parse janus ""
+parseJanus :: String -> String -> Either ParseError Janus
+parseJanus file = parse janus file
 
-janus :: Parser Stmt
-janus = whiteSpace >> statement
+janus :: Parser Janus
+janus = do whiteSpace
+           (,) <$> declarations
+               <*> statement
+
+declarations :: Parser [String]
+declarations = many1 identifier <* semi
 
 statement :: Parser Stmt
 statement = parens statement <|>
             sequenceOfStmt
   where sequenceOfStmt =
-          do list <- sepBy1 statement' semi
+          do list <- endBy1 statement' semi
              return $ if length list == 1 then head list else Seq list
         statement' = modStatment <|>
                      ifElseStatment
