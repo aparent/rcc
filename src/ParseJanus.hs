@@ -1,12 +1,13 @@
 module ParseJanus
   ( parseJanus
-  , ModOp
-  , ABinOp
-  , BBinOp
-  , RBinOp
-  , AExpr
-  , BExpr
-  , Stmt
+  , ModOp(..)
+  , ABinOp(..)
+  , BBinOp(..)
+  , RBinOp(..)
+  , AExpr(..)
+  , BExpr(..)
+  , Stmt(..)
+  , Janus
   ) where
  
 import Text.Parsec
@@ -178,7 +179,7 @@ bOperators = [
 
 aTerm = parens aExpression <|>
         Var <$> identifier <|>
-        ConstInt <$> integer
+        ConstInt <$> integer 
 
 bTerm = parens bExpression <|>
         rExpression

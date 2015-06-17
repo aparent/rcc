@@ -5,15 +5,20 @@ module Circuit
   ) where
 
 data Circuit = Circuit {
-        inputs  :: [ ([Integer], String) ]
-      , outputs :: [ ([Integer], String) ]
+        inputs  :: [ (String,[Integer]) ]
+      , outputs :: [ (String,[Integer]) ]
       , gates   :: [Gate]
-}
+} deriving Show
 
-data Gate = Gate {
-    name :: String
-  , bits :: [Integer]
-}
+data Gate = Not Integer
+          | Cnot Integer Integer
+          | Toff Integer Integer Integer
+  deriving Show
 
 size :: Circuit -> Integer
-size = maximum . map (maximum . bits) . gates
+size = maximum . map gMaxBit . gates
+
+gMaxBit :: Gate -> Integer
+gMaxBit (Not a) = a
+gMaxBit (Cnot a b) = max a b
+gMaxBit (Toff a b c) = max a $ max b c
