@@ -4,7 +4,8 @@ import GenJanus
 import Circuit
 
 data Options = Options
-  { inputFile :: String}
+  { inputFile :: String,
+    intSize :: Int }
 
 opts :: ParserInfo Options
 opts = info (helper <*> options)
@@ -14,6 +15,12 @@ opts = info (helper <*> options)
   where options =
           Options
           <$> argument str (metavar "TARGET")
+          <*> option auto
+              ( long "int-size"
+             <> short 's'
+             <> metavar "SIZE"
+             <> help "Specify how many bit should be used to represent an integer"
+             <> value 8)
 
 main = do
   options <- execParser opts
@@ -21,5 +28,5 @@ main = do
   let pj = parseJanus (inputFile options) progStr
   case pj of
     Left pe -> print pe
-    Right jan -> putStrLn $ writeQC $ genJanus 8 jan
+    Right jan -> putStrLn $ writeQC $ genJanus (intSize options) jan
   return ()
