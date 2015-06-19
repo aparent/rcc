@@ -30,8 +30,8 @@ genStmt intSize ancInd vmap stmt =
   where handleOp var op expr = 
           case op of 
             AddM -> gates ++ add [anc] out varInds ++ reverse gates
-            SubM -> []
-            XorM -> []
+            SubM -> gates ++ sub [anc] out varInds ++ reverse gates
+            XorM -> gates ++ xor [] out varInds ++ reverse gates
           where (out,gates,anc) = genAExpr' expr
                 varInds = fromJust $ lookup var vmap
         genAExpr' = genAExpr intSize ancInd vmap
@@ -59,6 +59,7 @@ genAExpr intSize ancInd vmap expr = (output,gates, head ancFinal)
              case op of   
                Add  -> applyIPBinOp add a b
                Sub  -> applyIPBinOp sub a b
+               Xor  -> applyIPBinOp xor a b
                Mult -> applyOPBinOp mult a b
                _ -> return a
 
@@ -68,7 +69,7 @@ genAExpr intSize ancInd vmap expr = (output,gates, head ancFinal)
              let copyAnc = take (fromIntegral intSize) anc
              let newAnc = drop (fromIntegral intSize) anc
              put (newAnc, gates ++ copy a copyAnc)
-             return copyAnc   
+             return copyAnc
 
         applyIPBinOp :: ([Integer] -> [Integer] -> [Integer] -> [Gate]) -> [Integer] -> [Integer] ->  ExprState [Integer]
         applyIPBinOp op a b  = do a' <- applyCopy a
@@ -95,8 +96,6 @@ genAExpr intSize ancInd vmap expr = (output,gates, head ancFinal)
                      return ancBits
           where bits 0 = []
                 bits i = mod i 2 : bits (div i 2)
-               
-
 
 copy :: [Integer] -> [Integer] -> [Gate]
 copy (a:as) (b:bs) = Cnot a b : copy as bs
@@ -119,6 +118,13 @@ add cs as bs = assert (length as == length bs && not (null as)) $
                     , Cnot z x
                     , Cnot x y]
 
+-- The extra ignored input is there since this function uses no ancilla
+xor :: [Integer] -> [Integer] -> [Integer] -> [Gate]
+xor _ = zipWith Cnot
+
+sub :: [Integer] -> [Integer] -> [Integer] -> [Gate]
+sub cs as bs = reverse $ add cs as bs
+
 ctrlAdd :: Integer -> Integer -> [Integer] -> [Integer] -> [Gate]
 ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
                         if length as > 1
@@ -135,11 +141,6 @@ ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
         uma x y z = [ Toff x y z
                     , Cnot z x
                     , Toff ctrl x y]
-
-
-sub :: [Integer] -> [Integer] -> [Integer] -> [Gate]
-sub cs as bs = reverse $ add cs as bs
-
 
 mult :: [Integer] -> [Integer] -> [Integer] -> [Integer] -> [Gate]
 mult _ [] _ _ = []
