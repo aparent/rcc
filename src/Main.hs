@@ -1,6 +1,7 @@
 import Options.Applicative
 import ParseJanus
 import GenJanus
+import Circuit
 
 data Options = Options
   { inputFile :: String}
@@ -18,9 +19,7 @@ main = do
   options <- execParser opts
   progStr <- readFile (inputFile options)
   let pj = parseJanus (inputFile options) progStr
-  print pj
   case pj of
     Left pe -> return ()
-    Right jan -> do putStrLn "\n-----------\n"
-                    print $ genJanus 8 jan
+    Right jan -> putStrLn $ writeQC $ genJanus 8 jan
   return ()
