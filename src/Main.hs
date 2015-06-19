@@ -20,6 +20,6 @@ main = do
   progStr <- readFile (inputFile options)
   let pj = parseJanus (inputFile options) progStr
   case pj of
-    Left pe -> return ()
+    Left pe -> print pe
     Right jan -> putStrLn $ writeQC $ genJanus 8 jan
   return ()
