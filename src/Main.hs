@@ -2,6 +2,7 @@ import Options.Applicative
 import ParseJanus
 import GenJanus
 import Circuit
+import CircuitDiagram
 
 data Options = Options
   { inputFile :: String,
@@ -20,7 +21,7 @@ opts = info (helper <*> options)
              <> short 's'
              <> metavar "SIZE"
              <> help "Specify how many bit should be used to represent an integer"
-             <> value 8)
+             <> value 4)
 
 main = do
   options <- execParser opts
@@ -28,5 +29,8 @@ main = do
   let pj = parseJanus (inputFile options) progStr
   case pj of
     Left pe -> print pe
-    Right jan -> putStrLn $ writeQC $ genJanus (intSize options) jan
+    Right jan -> do
+        let circ = genJanus (intSize options) jan
+        putStrLn $ writeQC circ
+        circuitToSvg circ "circ.svg" 1000
   return ()
