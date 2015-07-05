@@ -23,6 +23,7 @@ opts = info (helper <*> options)
              <> help "Specify how many bit should be used to represent an integer"
              <> value 4)
 
+main :: IO ()
 main = do
   options <- execParser opts
   progStr <- readFile (inputFile options)

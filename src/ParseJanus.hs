@@ -9,7 +9,7 @@ module ParseJanus
   , Stmt(..)
   , Janus
   ) where
- 
+
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language
@@ -107,7 +107,7 @@ whiteSpace = Token.whiteSpace lexer
 type Parser = Parsec String ()
 
 parseJanus :: String -> String -> Either ParseError Janus
-parseJanus file = parse janus file
+parseJanus = parse janus
 
 janus :: Parser Janus
 janus = do whiteSpace
@@ -179,7 +179,7 @@ bOperators = [
 
 aTerm = parens aExpression <|>
         Var <$> identifier <|>
-        ConstInt <$> integer 
+        ConstInt <$> integer
 
 bTerm = parens bExpression <|>
         rExpression

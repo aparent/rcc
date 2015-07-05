@@ -12,19 +12,23 @@ data Circuit =
   Circuit { circIntSize :: Int
           , inputs  :: [ String ]
           , gates   :: [ Gate ]
-          } deriving Show
+          } deriving (Show, Eq)
 
 data Gate = Not Integer
           | Cnot Integer Integer
           | Toff Integer Integer Integer
-  deriving Show
+          | Fred Integer Integer Integer
+  deriving (Show,Eq)
 
 size :: Circuit -> Int
-size = maximum . map (fromIntegral.gMaxBit) . gates
+size c
+  | null (gates c) = 0
+  | otherwise = maximum . map (fromIntegral.gMaxBit) $ gates c
   where gMaxBit :: Gate -> Integer
         gMaxBit (Not a) = a
         gMaxBit (Cnot a b) = max a b
         gMaxBit (Toff a b c) = max a $ max b c
+        gMaxBit (Fred a b c) = max a $ max b c
 
 inputSize :: Circuit -> Int
 inputSize c = length (inputs c) * circIntSize c
@@ -46,3 +50,4 @@ writeQC circ = v ++ i ++ o ++ "\nBEGIN\n" ++ gateStr ++ "END"
         writeGate (Not a) = "tof " ++ (lineToName . fromIntegral $ a)
         writeGate (Cnot a b) = "tof " ++ (unwords . map (lineToName.fromIntegral) $ [a,b])
         writeGate (Toff a b c) = "tof " ++ (unwords . map (lineToName.fromIntegral) $ [a,b,c])
+        writeGate (Fred a b c) = "swap " ++ (unwords . map (lineToName.fromIntegral) $ [a,b,c])

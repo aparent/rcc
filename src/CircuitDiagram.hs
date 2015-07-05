@@ -41,24 +41,45 @@ drawCirc c = hsep 0.0 [ txt
             Not t -> drawCnot (fromInteger t) []
             Cnot c1 t -> drawCnot (fromInteger t) [fromInteger c1]
             Toff c1 c2 t -> drawCnot (fromInteger t) $ map fromInteger [c1,c2]
+            Fred c1 t1 t2 -> drawSwap (fromInteger t1) (fromInteger t2) [fromInteger c1]
 
 drawCnot :: Double -> [Double] -> Diagram B
-drawCnot t cs =  mconcat ( circle targetRad # lw thin  # translateY t
-                     : controls )
-          <> line
+drawCnot t cs =  circle targetRad # lw thin  # translateY t
+              <> controls
+              <> line
   where line =  fromSegments [straight $ (top - bottom) *^ unitY ]
              # lw thin
              # translateY bottom
           where top = if maxY == t
                       then maxY + targetRad
-                      else maxY + ctrlRad
+                      else maxY
                 bottom = if minY == t
                          then minY - targetRad
-                         else minY - ctrlRad
+                         else minY
                 maxY = maximum (t:cs)
                 minY = minimum (t:cs)
-        controls = map dCtrl cs
-          where dCtrl y = circle ctrlRad # fc black # translateY y
+        controls = mconcat $ map drawCtrl cs
+
+drawCtrl :: Double -> Diagram B
+drawCtrl y = circle ctrlRad # fc black # translateY y
+
+
+drawSwap :: Double -> Double -> [Double] -> Diagram B
+drawSwap t1 t2 cs = targ # translateY t1
+                 <> targ # translateY t2
+                 <> controls
+                 <> line
+  where targ =     fromSegments [straight $ r2(1,1)  ] # lw thin # center
+                <> fromSegments [straight $ r2(1,-1) ] # lw thin # center
+        line = fromSegments [straight $ (top - bottom) *^ unitY ]
+             # lw thin
+             # translateY bottom
+          where top = maximum (t1:t2:cs)
+                bottom = minimum (t1:t2:cs)
+        controls = mconcat $ map drawCtrl cs
+
+
+
 
 lineNames :: Circuit -> [String]
 lineNames circ = concatMap inputStrings $ inputs circ
@@ -77,6 +98,7 @@ getDrawCols = (\(x,y) -> x ++ [y]) . foldl' colFold ([[]],[])
             Not n -> (n,n)
             Cnot n1 n2 -> (max n1 n2 , min n1 n2)
             Toff n1 n2 n3 -> (maximum [n1, n2, n3] , minimum [n1, n2, n3])
+            Fred n1 n2 n3 -> (maximum [n1, n2, n3] , minimum [n1, n2, n3])
         fits [] _ = True
         fits rs r = all (notInRange r) rs
           where notInRange x y = minT x > maxT y || maxT x < minT y
