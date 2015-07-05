@@ -24,3 +24,5 @@ else
 fi x2 < x1;
 x2 ^= x1;
 ```
+
+Check the [webpage](http://aparent.github.io/jcc/) for example output.
