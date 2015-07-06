@@ -1,5 +1,6 @@
 *.swp
 *.j
+*.svg
 cabal.sandbox.config
 .cabal-sandbox/
 dist/

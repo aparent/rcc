@@ -37,7 +37,7 @@ drawCirc c = hsep 0.0 [ txt
         drawGates = hsep colSpace . map (mconcat . map drawGate) . getDrawCols
         drawGate g =
           case g of
-            Not t -> drawCnot (fromInteger t) []
+            Not  t -> drawCnot (fromInteger t) []
             Cnot c1 t -> drawCnot (fromInteger t) [fromInteger c1]
             Toff c1 c2 t -> drawCnot (fromInteger t) $ map fromInteger [c1,c2]
             Fred c1 t1 t2 -> drawSwap (fromInteger t1) (fromInteger t2) [fromInteger c1]
