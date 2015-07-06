@@ -34,41 +34,41 @@ runGen k intS ancillaIndex vMap =
     let config = GenConfig { intSize = intS
                            , varMap = vMap
                            }
-        state = GenState { ancInd = ancillaIndex
+        genState = GenState { ancInd = ancillaIndex
                          , currGates = [] }
-    in runState (runReaderT (runG k) config) state
+    in runState (runReaderT (runG k) config) genState
 
 genJanus :: Int -> Janus ->  Circuit
-genJanus intSize (decl,stmt) =
-  Circuit { circIntSize = intSize
+genJanus intS (decl,stmt) =
+  Circuit { circIntSize = intS
           , inputs = decl
           , gates = mkGates }
-  where inputs = zip decl  $ f [0..]
-        f ls = take intSize ls : f (drop intSize ls)
-        (_,gState) = runGen (genStmt stmt) intSize ancInd inputs
+  where inputMap = zip decl  $ f [0..]
+        f ls = take intS ls : f (drop intS ls)
+        (_,gState) = runGen (genStmt stmt) intS ancI inputMap
         mkGates = currGates gState
-        ancInd = intSize * length inputs
+        ancI = intS * length decl
 
 genStmt :: Stmt -> Gen ()
 genStmt stmt =
   do
   vmap <- varMap <$> ask
-  intSize <- intSize <$> ask
+  intS <- intSize <$> ask
   currState <- get
   let anc = ancInd currState
   case stmt of
-    ModStmt v o e -> addGates $ handleOp vmap anc intSize v o e
+    ModStmt v o e -> addGates $ handleOp vmap anc intS v o e
     ModIndStmt{} -> return ()
     IfElse cond tStmt eStmt asrt -> genIfElse cond tStmt eStmt asrt
     Seq ss -> mapM_ genStmt ss
-  where handleOp vmap ancIndex intSize var op expr =
+  where handleOp vmap ancIndex intS var op expr =
           case op of
-            AddM -> gates ++ add anc out varInds ++ reverse gates
-            SubM -> gates ++ sub anc out varInds ++ reverse gates
-            XorM -> gates ++ xor anc out varInds ++ reverse gates
+            AddM -> gs ++ add anc out varInds ++ reverse gs
+            SubM -> gs ++ sub anc out varInds ++ reverse gs
+            XorM -> gs ++ xor anc out varInds ++ reverse gs
           where varInds = fromJust $ lookup var vmap
-                (out, gState) = runGen (genAExpr expr) intSize ancIndex vmap
-                gates = currGates gState
+                (out, gState) = runGen (genAExpr expr) intS ancIndex vmap
+                gs = currGates gState
                 anc = ancInd gState
 
 
@@ -79,20 +79,20 @@ incAncBy n = do currState <- get
 
 addGates :: [Gate] -> Gen ()
 addGates newGates = do currState <- get
-                       let gates = currGates currState
-                       put currState { currGates = gates ++ newGates }
+                       let gs = currGates currState
+                       put currState { currGates = gs ++ newGates }
 
 
 genIfElse :: BExpr -> Stmt -> Stmt -> BExpr -> Gen ()
 genIfElse condition thenStmt elseStmt assertion =
   do vmap <- varMap <$> ask
-     intSize <- intSize <$> ask
+     intS <- intSize <$> ask
      ctrl <- ancInd <$> get
-     let swapSize = intSize * length varsInStmts
+     let swapSize = intS * length varsInStmts
      let swapFrom = let redVmap = filter (\(x,_) -> elem x varsInStmts) vmap
                      in concatMap snd redVmap
      let swapGates = ctrledSwap ctrl swapFrom [ctrl + 1 .. ctrl + swapSize]
-     let newVmap = let f ls = take intSize ls : f (drop intSize ls)
+     let newVmap = let f ls = take intS ls : f (drop intS ls)
                     in zip varsInStmts $ f [ctrl+1..]
      incAncBy 1
      genBExpr condition ctrl
@@ -129,6 +129,7 @@ genAExpr expr = do
     --might want to add the possiblity of code gen failing with error
     Var v -> return $ fromJust $ lookup v vmap
     ABinary op exprA exprB -> applyOp op exprA exprB
+    _ -> error $ show expr ++ " is not implemented"
   where applyOp op opExprA opExprB =
           do a <- genAExpr opExprA
              b <- genAExpr opExprB
@@ -141,47 +142,42 @@ genAExpr expr = do
 
         applyCopy :: [Int] -> Gen [Int]
         applyCopy a =
-          do intSize <- intSize <$> ask
+          do intS <- intSize <$> ask
              anc <- ancInd <$> get
-             gates <- currGates <$> get
-             let copyAnc = [anc..anc+intSize-1]
-             incAncBy intSize
+             let copyAnc = [anc..anc+intS-1]
+             incAncBy intS
              addGates $ copy a copyAnc
              return copyAnc
 
         applyIPBinOp :: (Int -> [Int] -> [Int] -> [Gate]) -> [Int] -> [Int] ->  Gen [Int]
-        applyIPBinOp op a b  = do b' <- applyCopy b
-                                  apply a b'
-                                  return b'
+        applyIPBinOp op inpA inpB  = do inpB' <- applyCopy inpB
+                                        apply inpA inpB'
+                                        return inpB'
           where apply a b =
-                  do currState <- get
-                     anc <- ancInd <$> get
-                     gates <- currGates <$> get
+                  do anc <- ancInd <$> get
                      addGates $ op anc a b
 
         applyOPBinOp :: (Int -> [Int] -> [Int] -> [Int] -> [Gate]) -> [Int] -> [Int] ->  Gen [Int]
-        applyOPBinOp op a b  = do c <- mkInt 0
-                                  apply a b c
-                                  return c
+        applyOPBinOp op inpA inpB  = do c <- mkInt 0
+                                        apply inpA inpB c
+                                        return c
           where apply a b c =
                   do anc <- ancInd <$> get
-                     gates <- currGates <$> get
                      addGates $ op anc a b c
 
         mkInt :: Integer -> Gen [Int]
-        mkInt n = do intSize <- intSize <$> ask
+        mkInt n = do intS <- intSize <$> ask
                      anc <- ancInd <$> get
-                     gates <- currGates <$> get
-                     let ancBits = [anc..anc+intSize-1]
+                     let ancBits = [anc..anc+intS-1]
                      let newGates = catMaybes $ zipWith (\a b -> if a == 0 then Nothing else Just (Not b)) (bits n) ancBits
                      addGates newGates
-                     incAncBy intSize
+                     incAncBy intS
                      return ancBits
           where bits 0 = []
                 bits i = mod i 2 : bits (div i 2)
 
 
-genBExpr :: BExpr -> Int -> Gen Int
+genBExpr :: BExpr -> Int -> Gen ()
 genBExpr expr target =
   case expr of
      RBinary op a b -> do
@@ -189,27 +185,28 @@ genBExpr expr target =
         outB <- genAExpr b
         case op of
           RLT -> applyROP lessThan target outA outB
+          _ -> error  $ show op ++ " is not implemented"
+     _ -> error $ show expr ++ " is not implemented"
   where applyROP :: (Int -> Int -> [Int] -> [Int] -> [Gate]) ->
-                    Int -> [Int] -> [Int] ->  Gen Int
+                    Int -> [Int] -> [Int] ->  Gen ()
         applyROP op targ a b =
           do anc <- ancInd <$> get
              addGates $ op anc targ a b
-             return targ
 
 copy :: [Int] -> [Int] -> [Gate]
-copy (a:as) (b:bs) = Cnot a b : copy as bs
-copy [] [] = []
+copy a b = zipWith Cnot a b
 
 add :: Int -> [Int] -> [Int] -> [Gate]
-add c as bs = assert (length as == length bs && not (null as)) $
-                 if length as > 1
-                 then applyAdd (c:as) bs
-                 else [Cnot (head as) (head bs)]
+add c inpA inpB = assert (length inpA == length inpB && not (null inpA)) $
+                 if length inpA > 1
+                 then applyAdd (c:inpA) inpB
+                 else [Cnot (head inpA) (head inpB)]
   where applyAdd [a0,a1] [b0] = [ Cnot a1 b0
                                 , Cnot a0 b0 ]
         applyAdd (a0:a1:as) (b0:bs)  = maj a0 b0 a1
                                     ++ applyAdd (a1:as) bs
                                     ++ uma a0 b0 a1
+        applyAdd _ _ = error "Should be impossible by equal length assertion."
         maj x y z = [ Cnot z y
                     , Cnot z x
                     , Toff x y z]
@@ -225,15 +222,16 @@ sub :: Int -> [Int] -> [Int] -> [Gate]
 sub cs as bs = reverse $ add cs as bs
 
 ctrlAdd :: Int -> Int -> [Int] -> [Int] -> [Gate]
-ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
-                        if length as > 1
-                        then applyAdd (c:as) bs
-                        else [Toff ctrl (head as) (head bs)]
+ctrlAdd c ctrl inpA inpB = assert (length inpA == length inpB && not (null inpA)) $
+                        if length inpA > 1
+                      then applyAdd (c:inpA) inpB
+                      else [Toff ctrl (head inpA) (head inpB)]
   where applyAdd [a0,a1] [b0] = [ Toff ctrl a1 b0
                                 , Toff ctrl a0 b0 ]
         applyAdd (a0:a1:as) (b0:bs)  = maj a0 b0 a1
                                     ++ applyAdd (a1:as) bs
                                     ++ uma a0 b0 a1
+        applyAdd _ _ = error "Should be impossible by equal length assertion."
         maj x y z = [ Toff ctrl z y
                     , Cnot z x
                     , Toff x y z]
@@ -242,16 +240,17 @@ ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
                     , Toff ctrl x y]
 
 lessThan :: Int -> Int -> [Int] -> [Int] -> [Gate]
-lessThan c t as bs = assert (length as == length bs && not (null as)) $
-                 if length as > 1
-                 then applyAdd (c:as) bs
-                 else [Cnot (head as) (head bs)]
+lessThan c t inpA inpB = assert (length inpA == length inpB && not (null inpB)) $
+                      if length inpA > 1
+                    then applyAdd (c:inpA) inpB
+                    else [Cnot (head inpA) (head inpB)]
   where applyAdd [a0,a1] [b0] = maj a0 b0 a1
                              ++ [Cnot a1 t]
                              ++ reverse (maj a0 b0 a1)
         applyAdd (a0:a1:as) (b0:bs)  = maj a0 b0 a1
                                     ++ applyAdd (a1:as) bs
                                     ++ reverse (maj a0 b0 a1)
+        applyAdd _ _ = error "Should be impossible by equal length assertion."
         maj x y z = [ Cnot z y
                     , Cnot z x
                     , Toff x y z]

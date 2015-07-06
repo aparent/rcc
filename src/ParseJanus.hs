@@ -68,40 +68,49 @@ type Decl = [String]
 
 type Janus = (Decl,Stmt)
 
-languageDef =
-  emptyDef { Token.commentStart = "/*"
-            , Token.commentEnd  = "*/"
-            , Token.commentLine = "//"
-            , Token.identStart  = letter
-            , Token.identLetter = alphaNum
-            , Token.reservedNames = [ "if"
-                                      , "fi"
-                                      , "then"
-                                      , "else"
-                                      , "while"
-                                      , "from"
-                                      , "loop"
-                                      , "do"
-                                      , "until"
-                                      , "call"
-                                      , "uncall"
-                                      , "skip"
-                                      ]
-            , Token.reservedOpNames = ["-=", "+=", "^="
-                                      , "+", "-", "*", "^", "%", "/", "&", "|"
-                                      , "=" , "<=", ">=", "!=", "<", ">"
-                                      , "||", "&&"
-                                      ]
-            }
-
+lexer :: Token.TokenParser st
 lexer = Token.makeTokenParser languageDef
+  where languageDef = emptyDef { Token.commentStart = "/*"
+                               , Token.commentEnd  = "*/"
+                               , Token.commentLine = "//"
+                               , Token.identStart  = letter
+                               , Token.identLetter = alphaNum
+                               , Token.reservedNames = [ "if"
+                                                       , "fi"
+                                                       , "then"
+                                                       , "else"
+                                                       , "while"
+                                                       , "from"
+                                                       , "loop"
+                                                       , "do"
+                                                       , "until"
+                                                       , "call"
+                                                       , "uncall"
+                                                       , "skip"
+                                                        ]
+                               , Token.reservedOpNames = ["-=", "+=", "^="
+                                                        , "+", "-", "*", "^", "%", "/", "&", "|"
+                                                        , "=" , "<=", ">=", "!=", "<", ">"
+                                                        , "||", "&&"
+                                                        ]
+                               }
+
+identifier,semi :: Parser String
 identifier = Token.identifier lexer
+semi       = Token.semi       lexer
+
+reserved,reservedOp :: String -> Parser ()
 reserved   = Token.reserved   lexer
 reservedOp = Token.reservedOp lexer
+
+brackets,parens :: Parser a -> Parser a
 brackets   = Token.brackets   lexer
 parens     = Token.parens     lexer
+
+integer :: Parser Integer
 integer    = Token.integer    lexer
-semi       = Token.semi       lexer
+
+whiteSpace :: Parser ()
 whiteSpace = Token.whiteSpace lexer
 
 type Parser = Parsec String ()
@@ -144,54 +153,52 @@ ifElseStatment = IfElse <$> (reserved "if"   *> bExpression)
                         <*> (reserved "else" *> statement)
                         <*> (reserved "fi"   *> bExpression)
 
+constant :: Parser Integer
 constant = rd <$> many1 digit
   where rd = read :: String -> Integer
 
 aExpression :: Parser AExpr
 aExpression = buildExpressionParser aOperators aTerm
+  where aTerm = parens aExpression <|>
+                Var <$> identifier <|>
+                ConstInt <$> integer
+        aOperators = [
+                       [
+                         Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
+                         Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft,
+                         Infix (reservedOp "%" >> return (ABinary Mod)) AssocLeft
+                       ],
+                       [
+                         Infix (reservedOp "+" >> return (ABinary Add)) AssocLeft,
+                         Infix (reservedOp "-" >> return (ABinary Sub)) AssocLeft
+                       ],
+                       [
+                         Infix (reservedOp "&" >> return (ABinary And)) AssocLeft,
+                         Infix (reservedOp "^" >> return (ABinary Xor)) AssocLeft,
+                         Infix (reservedOp "|" >> return (ABinary Or)) AssocLeft
+                       ]
+                     ]
+
+
 
 bExpression :: Parser BExpr
 bExpression = buildExpressionParser bOperators bTerm
-
-aOperators = [
-              [
-                Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
-                Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft,
-                Infix (reservedOp "%" >> return (ABinary Mod)) AssocLeft
-              ],
-              [
-                Infix (reservedOp "+" >> return (ABinary Add)) AssocLeft,
-                Infix (reservedOp "-" >> return (ABinary Sub)) AssocLeft
-              ],
-              [
-                Infix (reservedOp "&" >> return (ABinary And)) AssocLeft,
-                Infix (reservedOp "^" >> return (ABinary Xor)) AssocLeft,
-                Infix (reservedOp "|" >> return (ABinary Or)) AssocLeft
-              ]
-            ]
-
-bOperators = [
-              [
-                Infix (reservedOp "&&" >> return (BBinary BAnd)) AssocLeft,
-                Infix (reservedOp "||" >> return (BBinary BOr)) AssocLeft
-              ]
-             ]
-
-aTerm = parens aExpression <|>
-        Var <$> identifier <|>
-        ConstInt <$> integer
-
-bTerm = parens bExpression <|>
-        rExpression
-
-rExpression =
-  do a1 <- aExpression
-     op <- relation
-     a2 <- aExpression
-     return $ RBinary op a1 a2
-  where relation = (reservedOp ">"  >> return RGT ) <|>
-                   (reservedOp "<"  >> return RLT ) <|>
-                   (reservedOp "<=" >> return RLTE) <|>
-                   (reservedOp ">=" >> return RGTE) <|>
-                   (reservedOp "!=" >> return RNE ) <|>
-                   (reservedOp "="  >> return RE  )
+  where bTerm = parens bExpression <|>
+                rExpression
+        rExpression =
+          do a1 <- aExpression
+             op <- relation
+             a2 <- aExpression
+             return $ RBinary op a1 a2
+          where relation = (reservedOp ">"  >> return RGT ) <|>
+                           (reservedOp "<"  >> return RLT ) <|>
+                           (reservedOp "<=" >> return RLTE) <|>
+                           (reservedOp ">=" >> return RGTE) <|>
+                           (reservedOp "!=" >> return RNE ) <|>
+                           (reservedOp "="  >> return RE  )
+        bOperators = [
+                      [
+                        Infix (reservedOp "&&" >> return (BBinary BAnd)) AssocLeft,
+                        Infix (reservedOp "||" >> return (BBinary BOr)) AssocLeft
+                      ]
+                     ]

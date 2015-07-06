@@ -21,9 +21,9 @@ data Gate = Not Int
   deriving (Show,Eq)
 
 size :: Circuit -> Int
-size c
-  | null (gates c) = 0
-  | otherwise = maximum . map gMaxBit $ gates c
+size circ
+  | null (gates circ) = 0
+  | otherwise = maximum . map gMaxBit $ gates circ
   where gMaxBit :: Gate -> Int
         gMaxBit (Not a) = a
         gMaxBit (Cnot a b) = max a b
