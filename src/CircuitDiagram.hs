@@ -23,13 +23,13 @@ drawCirc c = hsep 0.0 [ txt
                       , txt
                       ]
   where gs = drawGates (gates c)
-        ls = mconcat $ map (mkLine . fromIntegral) [0..Circuit.size c]
+        ls = mconcat . map (mkLine.fromIntegral) $ [0..Circuit.size c]
           where mkLine y = hrule 1
                          # lw thin
                          # lc grey
                          # sizedAs gs
                          # translateY y
-        txt = mconcat $ zipWith placeText (lineNames c) $ map fromIntegral [0..length (lineNames c)]
+        txt = mconcat . zipWith placeText (lineNames c) $ map fromIntegral [0..length (lineNames c)]
           where placeText s y = (mkText s <> phantom (rect 4 1 :: D V2 Double))
                               # translateY y
                 mkText s = text s
@@ -37,10 +37,10 @@ drawCirc c = hsep 0.0 [ txt
         drawGates = hsep colSpace . map (mconcat . map drawGate) . getDrawCols
         drawGate g =
           case g of
-            Not  t -> drawCnot (fromInteger t) []
-            Cnot c1 t -> drawCnot (fromInteger t) [fromInteger c1]
-            Toff c1 c2 t -> drawCnot (fromInteger t) $ map fromInteger [c1,c2]
-            Fred c1 t1 t2 -> drawSwap (fromInteger t1) (fromInteger t2) [fromInteger c1]
+            Not  t -> drawCnot (fromIntegral t) []
+            Cnot c1 t -> drawCnot (fromIntegral t) [fromIntegral c1]
+            Toff c1 c2 t -> drawCnot (fromIntegral t) $ map fromIntegral [c1,c2]
+            Fred c1 t1 t2 -> drawSwap (fromIntegral t1) (fromIntegral t2) [fromIntegral c1]
 
 drawCnot :: Double -> [Double] -> Diagram B
 drawCnot t cs =  circle targetRad # lw thin  # translateY t

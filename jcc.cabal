@@ -23,6 +23,7 @@ executable jcc
                -fwarn-monomorphism-restriction
                -fwarn-unused-do-bind
                -fwarn-implicit-prelude
+               -O
   default-extensions: GeneralizedNewtypeDeriving
   hs-source-dirs: src
   build-depends:       base >=4.6 && <4.7,

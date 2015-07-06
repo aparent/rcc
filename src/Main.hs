@@ -33,7 +33,7 @@ main = do
     Left pe -> print pe
     Right jan -> do
         let circ = genJanus (intSize options) jan
-        print $ circ
+        print circ
         putStrLn $ writeQC circ
         putStrLn $ formatSimOutput $ simulate circ
         circuitToSvg circ "circ.svg" 1000

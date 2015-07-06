@@ -14,17 +14,17 @@ data Circuit =
           , gates   :: [ Gate ]
           } deriving (Show, Eq)
 
-data Gate = Not Integer
-          | Cnot Integer Integer
-          | Toff Integer Integer Integer
-          | Fred Integer Integer Integer
+data Gate = Not Int
+          | Cnot Int Int
+          | Toff Int Int Int
+          | Fred Int Int Int
   deriving (Show,Eq)
 
 size :: Circuit -> Int
 size c
   | null (gates c) = 0
-  | otherwise = maximum . map (fromIntegral.gMaxBit) $ gates c
-  where gMaxBit :: Gate -> Integer
+  | otherwise = maximum . map gMaxBit $ gates c
+  where gMaxBit :: Gate -> Int
         gMaxBit (Not a) = a
         gMaxBit (Cnot a b) = max a b
         gMaxBit (Toff a b c) = max a $ max b c
@@ -47,7 +47,7 @@ writeQC circ = v ++ i ++ o ++ "\nBEGIN\n" ++ gateStr ++ "END"
           | n < inputSize circ = (inps ! (n `div` intSize)) ++ "i" ++  show (n `mod` intSize)
           | otherwise = 'a' : show (n - inputSize circ)
         writeGate :: Gate -> String
-        writeGate (Not a) = "tof " ++ (lineToName . fromIntegral $ a)
-        writeGate (Cnot a b) = "tof " ++ (unwords . map (lineToName.fromIntegral) $ [a,b])
-        writeGate (Toff a b c) = "tof " ++ (unwords . map (lineToName.fromIntegral) $ [a,b,c])
-        writeGate (Fred a b c) = "swap " ++ (unwords . map (lineToName.fromIntegral) $ [a,b,c])
+        writeGate (Not a) = "tof " ++ lineToName a
+        writeGate (Cnot a b) = "tof " ++ (unwords . map lineToName) [a,b]
+        writeGate (Toff a b c) = "tof " ++ (unwords . map lineToName) [a,b,c]
+        writeGate (Fred a b c) = "swap " ++ (unwords . map lineToName) [a,b,c]

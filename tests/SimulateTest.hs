@@ -8,4 +8,4 @@ import Simulate
 import Test.QuickCheck
 
 propToBitsFromBitsId :: Positive Integer -> Bool
-propToBitsFromBitsId (Positive x) = x == (bitsToInt $ intToBits x)
+propToBitsFromBitsId (Positive x) = x == bitsToInt (intToBits x)

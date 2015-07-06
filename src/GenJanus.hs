@@ -10,12 +10,12 @@ import Control.Applicative
 import Control.Exception
 import Data.Maybe
 
-data GenState = GenState { ancInd :: Integer
+data GenState = GenState { ancInd :: Int
                          , currGates :: [Gate]
                          } deriving (Show)
 
-data GenConfig = GenConfig { intSize :: Integer
-                           , varMap  :: [(String,[Integer])]
+data GenConfig = GenConfig { intSize :: Int
+                           , varMap  :: [(String,[Int])]
                            } deriving (Show)
 
 newtype Gen a =
@@ -29,7 +29,7 @@ instance Applicative Gen where
     pure  = return
     (<*>) = ap
 
-runGen :: Gen a -> Integer -> Integer -> [(String,[Integer])] -> (a, GenState)
+runGen :: Gen a -> Int -> Int -> [(String,[Int])] -> (a, GenState)
 runGen k intS ancillaIndex vMap =
     let config = GenConfig { intSize = intS
                            , varMap = vMap
@@ -45,7 +45,7 @@ genJanus intSize (decl,stmt) =
           , gates = mkGates }
   where inputs = zip decl  $ f [0..]
         f ls = take intSize ls : f (drop intSize ls)
-        (_,gState) = runGen (genStmt stmt) (fromIntegral intSize) (fromIntegral ancInd) inputs
+        (_,gState) = runGen (genStmt stmt) intSize ancInd inputs
         mkGates = currGates gState
         ancInd = intSize * length inputs
 
@@ -72,7 +72,7 @@ genStmt stmt =
                 anc = ancInd gState
 
 
-incAncBy :: Integer -> Gen ()
+incAncBy :: Int -> Gen ()
 incAncBy n = do currState <- get
                 let currAnc = ancInd currState
                 put currState { ancInd = currAnc + n }
@@ -88,11 +88,11 @@ genIfElse condition thenStmt elseStmt assertion =
   do vmap <- varMap <$> ask
      intSize <- intSize <$> ask
      ctrl <- ancInd <$> get
-     let swapSize = intSize * fromIntegral (length varsInStmts)
+     let swapSize = intSize * length varsInStmts
      let swapFrom = let redVmap = filter (\(x,_) -> elem x varsInStmts) vmap
                      in concatMap snd redVmap
      let swapGates = ctrledSwap ctrl swapFrom [ctrl + 1 .. ctrl + swapSize]
-     let newVmap = let f ls = take (fromIntegral intSize) ls : f (drop (fromIntegral intSize) ls)
+     let newVmap = let f ls = take intSize ls : f (drop intSize ls)
                     in zip varsInStmts $ f [ctrl+1..]
      incAncBy 1
      genBExpr condition ctrl
@@ -107,7 +107,7 @@ genIfElse condition thenStmt elseStmt assertion =
      incAncBy $ negate 1
   where varsInStmts = varsModInStmt $ Seq [thenStmt,elseStmt]
 
-ctrledSwap :: Integer -> [Integer] -> [Integer] -> [Gate]
+ctrledSwap :: Int -> [Int] -> [Int] -> [Gate]
 ctrledSwap ctrl = zipWith (Fred ctrl)
 
 
@@ -119,7 +119,7 @@ varsModInStmt stmt =
     IfElse _ s1 s2 _ -> varsModInStmt s1 ++ varsModInStmt s2
     Seq ss -> concatMap varsModInStmt ss
 
-genAExpr :: AExpr -> Gen [Integer]
+genAExpr :: AExpr -> Gen [Int]
 genAExpr expr = do
   vmap <- varMap <$> ask
   case expr of
@@ -139,7 +139,7 @@ genAExpr expr = do
                Mult -> applyOPBinOp mult a b
                _ -> return a
 
-        applyCopy :: [Integer] -> Gen [Integer]
+        applyCopy :: [Int] -> Gen [Int]
         applyCopy a =
           do intSize <- intSize <$> ask
              anc <- ancInd <$> get
@@ -149,7 +149,7 @@ genAExpr expr = do
              addGates $ copy a copyAnc
              return copyAnc
 
-        applyIPBinOp :: (Integer -> [Integer] -> [Integer] -> [Gate]) -> [Integer] -> [Integer] ->  Gen [Integer]
+        applyIPBinOp :: (Int -> [Int] -> [Int] -> [Gate]) -> [Int] -> [Int] ->  Gen [Int]
         applyIPBinOp op a b  = do b' <- applyCopy b
                                   apply a b'
                                   return b'
@@ -159,7 +159,7 @@ genAExpr expr = do
                      gates <- currGates <$> get
                      addGates $ op anc a b
 
-        applyOPBinOp :: (Integer -> [Integer] -> [Integer] -> [Integer] -> [Gate]) -> [Integer] -> [Integer] ->  Gen [Integer]
+        applyOPBinOp :: (Int -> [Int] -> [Int] -> [Int] -> [Gate]) -> [Int] -> [Int] ->  Gen [Int]
         applyOPBinOp op a b  = do c <- mkInt 0
                                   apply a b c
                                   return c
@@ -168,7 +168,7 @@ genAExpr expr = do
                      gates <- currGates <$> get
                      addGates $ op anc a b c
 
-        mkInt :: Integer -> Gen [Integer]
+        mkInt :: Integer -> Gen [Int]
         mkInt n = do intSize <- intSize <$> ask
                      anc <- ancInd <$> get
                      gates <- currGates <$> get
@@ -181,7 +181,7 @@ genAExpr expr = do
                 bits i = mod i 2 : bits (div i 2)
 
 
-genBExpr :: BExpr -> Integer -> Gen Integer
+genBExpr :: BExpr -> Int -> Gen Int
 genBExpr expr target =
   case expr of
      RBinary op a b -> do
@@ -189,18 +189,18 @@ genBExpr expr target =
         outB <- genAExpr b
         case op of
           RLT -> applyROP lessThan target outA outB
-  where applyROP :: (Integer -> Integer -> [Integer] -> [Integer] -> [Gate]) ->
-                    Integer -> [Integer] -> [Integer] ->  Gen Integer
+  where applyROP :: (Int -> Int -> [Int] -> [Int] -> [Gate]) ->
+                    Int -> [Int] -> [Int] ->  Gen Int
         applyROP op targ a b =
           do anc <- ancInd <$> get
              addGates $ op anc targ a b
              return targ
 
-copy :: [Integer] -> [Integer] -> [Gate]
+copy :: [Int] -> [Int] -> [Gate]
 copy (a:as) (b:bs) = Cnot a b : copy as bs
 copy [] [] = []
 
-add :: Integer -> [Integer] -> [Integer] -> [Gate]
+add :: Int -> [Int] -> [Int] -> [Gate]
 add c as bs = assert (length as == length bs && not (null as)) $
                  if length as > 1
                  then applyAdd (c:as) bs
@@ -218,13 +218,13 @@ add c as bs = assert (length as == length bs && not (null as)) $
                     , Cnot x y]
 
 -- The extra ignored input is there since this function uses no ancilla
-xor :: Integer -> [Integer] -> [Integer] -> [Gate]
+xor :: Int -> [Int] -> [Int] -> [Gate]
 xor _ = zipWith Cnot
 
-sub :: Integer -> [Integer] -> [Integer] -> [Gate]
+sub :: Int -> [Int] -> [Int] -> [Gate]
 sub cs as bs = reverse $ add cs as bs
 
-ctrlAdd :: Integer -> Integer -> [Integer] -> [Integer] -> [Gate]
+ctrlAdd :: Int -> Int -> [Int] -> [Int] -> [Gate]
 ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
                         if length as > 1
                         then applyAdd (c:as) bs
@@ -241,7 +241,7 @@ ctrlAdd c ctrl as bs = assert (length as == length bs && not (null as)) $
                     , Cnot z x
                     , Toff ctrl x y]
 
-lessThan :: Integer -> Integer -> [Integer] -> [Integer] -> [Gate]
+lessThan :: Int -> Int -> [Int] -> [Int] -> [Gate]
 lessThan c t as bs = assert (length as == length bs && not (null as)) $
                  if length as > 1
                  then applyAdd (c:as) bs
@@ -257,10 +257,10 @@ lessThan c t as bs = assert (length as == length bs && not (null as)) $
                     , Toff x y z]
 
 
-mult :: Integer -> [Integer] -> [Integer] -> [Integer] -> [Gate]
+mult :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 mult _ [] _ _ = []
 mult c as bs rs = ctrlAdd c (head as) bs rs ++ mult c (tail as) (init bs) (tail rs)
 
---div :: Integer -> [Integer] -> [Integer] -> [Integer] -> [Gate]
+--div :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 --div c
 
