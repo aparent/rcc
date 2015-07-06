@@ -15,8 +15,7 @@ colSpace = 0.2
 -- | Takes a circuit, filename, and width then writes out a
 -- diagram of the circuit as an SVG
 circuitToSvg :: Circuit -> String -> Double -> IO ()
-circuitToSvg c f w = renderSVG f (mkWidth w) d
-  where d = drawCirc c
+circuitToSvg c f w = renderSVG f (mkWidth w) $ drawCirc c
 
 drawCirc :: Circuit -> Diagram B
 drawCirc c = hsep 0.0 [ txt
@@ -47,8 +46,7 @@ drawCnot :: Double -> [Double] -> Diagram B
 drawCnot t cs =  circle targetRad # lw thin  # translateY t
               <> controls
               <> line
-  where line =  fromSegments [straight $ (top - bottom) *^ unitY ]
-             # lw thin
+  where line = drawLine 0 (top - bottom)
              # translateY bottom
           where top = if maxY == t
                       then maxY + targetRad
@@ -63,23 +61,21 @@ drawCnot t cs =  circle targetRad # lw thin  # translateY t
 drawCtrl :: Double -> Diagram B
 drawCtrl y = circle ctrlRad # fc black # translateY y
 
-
 drawSwap :: Double -> Double -> [Double] -> Diagram B
 drawSwap t1 t2 cs = targ # translateY t1
                  <> targ # translateY t2
                  <> controls
                  <> line
-  where targ =     fromSegments [straight $ r2(1,1)  ] # lw thin # center
-                <> fromSegments [straight $ r2(1,-1) ] # lw thin # center
-        line = fromSegments [straight $ (top - bottom) *^ unitY ]
-             # lw thin
+  where targ =     drawLine 1 1  # center
+                <> drawLine 1 (-1) # center
+        line = drawLine 0 (top - bottom)
              # translateY bottom
           where top = maximum (t1:t2:cs)
                 bottom = minimum (t1:t2:cs)
         controls = mconcat $ map drawCtrl cs
 
-
-
+drawLine :: Double -> Double -> Diagram B
+drawLine x y = fromSegments [straight $ r2(x,y) ] # lw thin
 
 lineNames :: Circuit -> [String]
 lineNames circ = concatMap inputStrings $ inputs circ

@@ -101,7 +101,7 @@ genIfElse condition thenStmt elseStmt assertion =
      genStmt thenStmt
      config <- ask
      local (\_->  config {varMap = newVmap}) $ genStmt elseStmt --Else branch uses the other set of gates
-     addGates swapGates
+     addGates $ reverse swapGates
      incAncBy $ negate swapSize
      genBExpr assertion ctrl
      incAncBy $ negate 1
