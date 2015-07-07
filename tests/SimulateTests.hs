@@ -1,5 +1,4 @@
-
-module SimulateTest
+module SimulateTests
 (
   propToBitsFromBitsId
 ) where

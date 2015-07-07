@@ -10,9 +10,11 @@ import Data.Vector((!),(//),Vector)
 import qualified Data.Vector as V
 import qualified Data.List as L
 
-simulate :: Circuit -> [(String,Integer)]
-simulate circ = zip inp (map bitsToInt $ divs intSize simulatedBits)
-  where simulatedBits = V.toList $ L.foldl' simGate  initVec (gates circ)
+simulate :: Circuit -> ([(String,Integer)] , Integer)
+simulate circ = (varVals , ancInt)
+  where ancInt = bitsToInt $ drop (length inp * intSize) simulatedBits
+        varVals = zip inp (map bitsToInt $ divs intSize simulatedBits)
+        simulatedBits = V.toList $ L.foldl' simGate  initVec (gates circ)
         initVec = V.fromList $ replicate (size circ + 1) False
         intSize = circIntSize circ
         inp = inputs circ

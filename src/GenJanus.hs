@@ -98,9 +98,9 @@ genIfElse condition thenStmt elseStmt assertion =
      genBExpr condition ctrl
      incAncBy swapSize
      addGates swapGates
-     genStmt thenStmt
+     genStmt elseStmt
      config <- ask
-     local (\_->  config {varMap = newVmap}) $ genStmt elseStmt --Else branch uses the other set of gates
+     local (\_->  config {varMap = newVmap}) $ genStmt thenStmt --Then branch uses the other set of gates
      addGates $ reverse swapGates
      incAncBy $ negate swapSize
      genBExpr assertion ctrl
@@ -176,25 +176,33 @@ genAExpr expr = do
           where bits 0 = []
                 bits i = mod i 2 : bits (div i 2)
 
+aExprWithCleanup :: Gen a -> (a -> Gen b) -> Gen b
+aExprWithCleanup expr op =
+  do ancBefore <- ancInd <$> get
+     gateAmtBefore <- length . currGates <$> get
+     x <- expr
+     exprGates <- drop gateAmtBefore . currGates <$> get
+     ancAfter <- ancInd <$> get
+     ret <- op x
+     addGates $ reverse exprGates
+     incAncBy (ancBefore - ancAfter)
+     return ret
 
 genBExpr :: BExpr -> Int -> Gen ()
 genBExpr expr target =
   case expr of
-     RBinary op a b -> do
-        outA <- genAExpr a
-        outB <- genAExpr b
+     RBinary op a b ->
         case op of
-          RLT -> applyROP lessThan target outA outB
+          RLT -> aExprWithCleanup (mkExprs a b) (applyROP lessThan target)
           _ -> error  $ show op ++ " is not implemented"
      _ -> error $ show expr ++ " is not implemented"
-  where applyROP :: (Int -> Int -> [Int] -> [Int] -> [Gate]) ->
-                    Int -> [Int] -> [Int] ->  Gen ()
-        applyROP op targ a b =
+  where applyROP op targ (a,b) =
           do anc <- ancInd <$> get
              addGates $ op anc targ a b
+        mkExprs a b = (,) <$> genAExpr a <*> genAExpr b
 
 copy :: [Int] -> [Int] -> [Gate]
-copy a b = zipWith Cnot a b
+copy = zipWith Cnot
 
 add :: Int -> [Int] -> [Int] -> [Gate]
 add c inpA inpB = assert (length inpA == length inpB && not (null inpA)) $
@@ -240,11 +248,15 @@ ctrlAdd c ctrl inpA inpB = assert (length inpA == length inpB && not (null inpA)
                     , Toff ctrl x y]
 
 lessThan :: Int -> Int -> [Int] -> [Int] -> [Gate]
-lessThan c t inpA inpB = assert (length inpA == length inpB && not (null inpB)) $
-                      if length inpA > 1
-                    then applyAdd (c:inpA) inpB
-                    else [Cnot (head inpA) (head inpB)]
-  where applyAdd [a0,a1] [b0] = maj a0 b0 a1
+lessThan c t inpA inpB =
+  assert (length inpA == length inpB && not (null inpB)) $
+  notA ++ highBitAdder ++ notA
+  where notA = map Not inpA
+        highBitAdder =
+          if length inpA > 1
+          then applyAdd (c:inpA) inpB
+          else [Cnot (head inpA) (head inpB)]
+        applyAdd [a0,a1] [b0] = maj a0 b0 a1
                              ++ [Cnot a1 t]
                              ++ reverse (maj a0 b0 a1)
         applyAdd (a0:a1:as) (b0:bs)  = maj a0 b0 a1

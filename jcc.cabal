@@ -39,7 +39,7 @@ executable jcc
 
 test-suite tests
   ghc-options: -Wall
-  default-extensions:  OverloadedStrings
+  default-extensions:  OverloadedStrings, GeneralizedNewtypeDeriving
   type: exitcode-stdio-1.0
   hs-source-dirs:    tests, src
   main-is: tests.hs
@@ -49,5 +49,7 @@ test-suite tests
                  test-framework,
                  test-framework-hunit,
                  test-framework-quickcheck2,
+                 mtl >=2.1 && <2.2,
+                 parsec >=3.1 && <3.2,
                  vector >= 0.10
   default-language:    Haskell2010

@@ -39,6 +39,9 @@ main = do
         circuitToSvg circ "circ.svg" 1000
   return ()
 
-formatSimOutput :: [(String,Integer)] -> String
-formatSimOutput vals = "\nSimulation Results:" ++ vs
+formatSimOutput :: ([(String,Integer)] , Integer) -> String
+formatSimOutput (vals,anc) = "\nSimulation Results:"
+                          ++ vs
+                          ++ "\nAncilla (zero means cleared): "
+                          ++ show anc
   where vs = concatMap (\(var,val) -> '\n' : '\t' : var ++ " = " ++ show val) vals
