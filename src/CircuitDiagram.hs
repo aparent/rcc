@@ -3,14 +3,19 @@ module CircuitDiagram (circuitToSvg) where
 
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
+import Graphics.SVGFonts
+
 import Data.List (foldl')
 
 import Circuit
 
 targetRad, ctrlRad, colSpace :: Double
 targetRad = 0.5
+charSize = 1
 ctrlRad = 0.2
 colSpace = 0.2
+
+
 
 -- | Takes a circuit, filename, and width then writes out a
 -- diagram of the circuit as an SVG
@@ -43,11 +48,14 @@ drawCirc c = hsep 0.0 [ txt
             Fred c1 t1 t2 -> drawSwap (fromIntegral t1) (fromIntegral t2) [fromIntegral c1]
             Hadamard n -> drawH (fromIntegral n)
 
+drawChar :: Char -> Diagram B
+drawChar c = strokeP (textSVG' (TextOpts bit INSIDE_H KERN False charSize charSize) [c])
+             # lw 0.0
+             # fc black
+
 drawH :: Double -> Diagram B
 drawH t = (symb <> base)  # translateY t
-  where symb = text "H"
-             # font "sans"
-             # fontSize (local 0.8)
+  where symb = drawChar 'H'
         base = square (1.7*targetRad)
              # lw thin
              # fc white

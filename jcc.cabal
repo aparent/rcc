@@ -34,7 +34,8 @@ executable jcc
                        vector >= 0.10,
                        diagrams >= 0.13,
                        diagrams-svg >= 0.13,
-                       diagrams-lib >= 0.13
+                       diagrams-lib >= 0.13,
+                       SVGFonts >= 1.5
   default-language:    Haskell2010
 
 test-suite tests
