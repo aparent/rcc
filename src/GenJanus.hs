@@ -83,7 +83,11 @@ addGates newGates = do currState <- get
                        let gs = currGates currState
                        put currState { currGates = gs ++ newGates }
 
-
+-- If statments are done by using a controlled swap to move the bits into the correct branch.
+-- The other branch is given the HxH..xH|00..> state.
+-- This state is an eigenvector of all permutation matrices so it is unaffected by the reversible block.
+-- It will therefore be cleaned up when it is later undone.
+-- TODO: Add a citation for this
 genIfElse :: BExpr -> Stmt -> Stmt -> BExpr -> Gen ()
 genIfElse condition thenStmt elseStmt assertion =
   do vmap <- varMap <$> ask
@@ -196,6 +200,7 @@ genBExpr expr target =
      RBinary op a b ->
         case op of
           RLT -> aExprWithCleanup (mkExprs a b) (applyROP lessThan target)
+          RGT -> aExprWithCleanup (mkExprs a b) (applyROP greaterThan target)
           _ -> error  $ show op ++ " is not implemented"
      _ -> error $ show expr ++ " is not implemented"
   where applyROP op targ (a,b) =
@@ -206,6 +211,7 @@ genBExpr expr target =
 copy :: [Int] -> [Int] -> [Gate]
 copy = zipWith Cnot
 
+-- Creates an addition circuit based on http://arxiv.org/abs/quant-ph/0410184
 add :: Int -> [Int] -> [Int] -> [Gate]
 add c inpA inpB = assert (length inpA == length inpB && not (null inpA)) $
                  if length inpA > 1
@@ -231,6 +237,10 @@ xor _ = zipWith Cnot
 sub :: Int -> [Int] -> [Int] -> [Gate]
 sub cs as bs = reverse $ add cs as bs
 
+--   Creates a controlled addition circuit.
+--   Uses the addition circuit from: http://arxiv.org/abs/quant-ph/0410184
+--   Controlled by adding controls to a set of gates such that removing that set
+--   Would cause the circuit to be the identity
 ctrlAdd :: Int -> Int -> [Int] -> [Int] -> [Gate]
 ctrlAdd c ctrl inpA inpB = assert (length inpA == length inpB && not (null inpA)) $
                         if length inpA > 1
@@ -249,6 +259,7 @@ ctrlAdd c ctrl inpA inpB = assert (length inpA == length inpB && not (null inpA)
                     , Cnot z x
                     , Toff ctrl x y]
 
+-- Creates a comparison circuit based on http://arxiv.org/abs/quant-ph/0410184
 lessThan :: Int -> Int -> [Int] -> [Int] -> [Gate]
 lessThan c t inpA inpB =
   assert (length inpA == length inpB && not (null inpB)) $
@@ -269,7 +280,11 @@ lessThan c t inpA inpB =
                     , Cnot z x
                     , Toff x y z]
 
+greaterThan :: Int -> Int -> [Int] -> [Int] -> [Gate]
+greaterThan c t a b = lessThan c t b a
 
+-- Controlled addition based adder.
+-- Uses the simple shift and add method
 mult :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 mult _ [] _ _ = []
 mult c as bs rs = ctrlAdd c (head as) bs rs ++ mult c (tail as) (init bs) (tail rs)
