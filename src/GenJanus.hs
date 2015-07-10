@@ -9,6 +9,7 @@ import Control.Monad.Reader
 import Control.Applicative
 import Control.Exception
 import Data.Maybe
+import Data.List(nub)
 
 data GenState = GenState { ancInd :: Int
                          , currGates :: [Gate]
@@ -91,7 +92,8 @@ genIfElse condition thenStmt elseStmt assertion =
      let swapSize = intS * length varsInStmts
      let swapFrom = let redVmap = filter (\(x,_) -> elem x varsInStmts) vmap
                      in concatMap snd redVmap
-     let swapGates = ctrledSwap ctrl swapFrom [ctrl + 1 .. ctrl + swapSize]
+     let swapGates = let swapAnc = [ctrl + 1 .. ctrl + swapSize]
+                     in map Hadamard swapAnc ++ ctrledSwap ctrl swapFrom swapAnc
      let newVmap = let f ls = take intS ls : f (drop intS ls)
                     in zip varsInStmts $ f [ctrl+1..]
      incAncBy 1
@@ -105,7 +107,7 @@ genIfElse condition thenStmt elseStmt assertion =
      incAncBy $ negate swapSize
      genBExpr assertion ctrl
      incAncBy $ negate 1
-  where varsInStmts = varsModInStmt $ Seq [thenStmt,elseStmt]
+  where varsInStmts = nub $ varsModInStmt $ Seq [thenStmt,elseStmt]
 
 ctrledSwap :: Int -> [Int] -> [Int] -> [Gate]
 ctrledSwap ctrl = zipWith (Fred ctrl)

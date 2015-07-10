@@ -41,6 +41,17 @@ drawCirc c = hsep 0.0 [ txt
             Cnot c1 t -> drawCnot (fromIntegral t) [fromIntegral c1]
             Toff c1 c2 t -> drawCnot (fromIntegral t) $ map fromIntegral [c1,c2]
             Fred c1 t1 t2 -> drawSwap (fromIntegral t1) (fromIntegral t2) [fromIntegral c1]
+            Hadamard n -> drawH (fromIntegral n)
+
+drawH :: Double -> Diagram B
+drawH t = (symb <> base)  # translateY t
+  where symb = text "H"
+             # font "sans"
+             # fontSize (local 0.8)
+        base = square (1.7*targetRad)
+             # lw thin
+             # fc white
+
 
 drawCnot :: Double -> [Double] -> Diagram B
 drawCnot t cs =  circle targetRad # lw thin  # translateY t
@@ -95,6 +106,7 @@ getDrawCols = (\(x,y) -> x ++ [y]) . foldl' colFold ([[]],[])
             Cnot n1 n2 -> (max n1 n2 , min n1 n2)
             Toff n1 n2 n3 -> (maximum [n1, n2, n3] , minimum [n1, n2, n3])
             Fred n1 n2 n3 -> (maximum [n1, n2, n3] , minimum [n1, n2, n3])
+            Hadamard n -> (n,n)
         fits [] _ = True
         fits rs r = all (notInRange r) rs
           where notInRange x y = minT x > maxT y || maxT x < minT y

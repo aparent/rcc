@@ -33,6 +33,7 @@ simulate circ = (varVals , ancInt)
             Fred c t1 t2 -> if vals ! c
                             then vals // [(t1, vals ! t2),(t2, vals ! t1)]
                             else vals
+            Hadamard a -> vals
 
 
 intToBits :: Integer -> [Bool]

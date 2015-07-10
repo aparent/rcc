@@ -18,6 +18,7 @@ data Gate = Not Int
           | Cnot Int Int
           | Toff Int Int Int
           | Fred Int Int Int
+          | Hadamard Int
   deriving (Show,Eq)
 
 size :: Circuit -> Int
@@ -29,6 +30,7 @@ size circ
         gMaxBit (Cnot a b) = max a b
         gMaxBit (Toff a b c) = max a $ max b c
         gMaxBit (Fred a b c) = max a $ max b c
+        gMaxBit (Hadamard a) = a
 
 inputSize :: Circuit -> Int
 inputSize c = length (inputs c) * circIntSize c
@@ -48,6 +50,7 @@ writeQC circ = v ++ i ++ o ++ "\nBEGIN\n" ++ gateStr ++ "END"
           | otherwise = 'a' : show (n - inputSize circ)
         writeGate :: Gate -> String
         writeGate (Not a) = "tof " ++ lineToName a
+        writeGate (Hadamard a) = "H " ++ lineToName a
         writeGate (Cnot a b) = "tof " ++ (unwords . map lineToName) [a,b]
         writeGate (Toff a b c) = "tof " ++ (unwords . map lineToName) [a,b,c]
         writeGate (Fred a b c) = "swap " ++ (unwords . map lineToName) [a,b,c]
