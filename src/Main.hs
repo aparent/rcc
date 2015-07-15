@@ -1,3 +1,4 @@
+import Prelude
 import Options.Applicative
 import ParseJanus
 import GenJanus

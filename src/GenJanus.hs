@@ -3,6 +3,7 @@ module GenJanus (genJanus) where
 import ParseJanus
 import Circuit
 
+import Prelude
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
@@ -59,8 +60,6 @@ genStmt stmt =
   let anc = ancInd currState
   case stmt of
     ModStmt v o e -> addGates $ handleOp vmap anc intS v o e
-    ModIndStmt{} ->
-      error "Index statments not yet implemented."
     Loop var start s end ->
       genLoop var start s end
     IfElse cond tStmt eStmt asrt ->
@@ -86,8 +85,6 @@ setVar var stmt value =
   case stmt of
     ModStmt v o e ->
       ModStmt v o (setAE e)
-    ModIndStmt{} ->
-      error "Index statments not yet implemented."
     Loop v start s end ->
       Loop v start (setVar' s) end
     IfElse cond tStmt eStmt asrt ->
@@ -110,8 +107,6 @@ setVar var stmt value =
                 ConstInt value
               else
                 aExpr
-            VarInd _ _ ->
-              error "Index statments not yet implemented."
             ABinary op exp1 exp2 ->
               ABinary op (setAE exp1) (setAE exp2)
 
@@ -163,7 +158,6 @@ varsModInStmt :: Stmt -> [String]
 varsModInStmt stmt =
  case stmt of
     ModStmt var _ _ -> [var]
-    ModIndStmt{} -> error "Index statments not yet implemented."
     IfElse _ s1 s2 _ -> varsModInStmt s1 ++ varsModInStmt s2
     Loop _ _ s _ -> varsModInStmt s
     Seq ss -> concatMap varsModInStmt ss
@@ -178,7 +172,6 @@ genAExpr expr = do
     --might want to add the possiblity of code gen failing with error
     Var v -> return $ fromJust $ lookup v vmap
     ABinary op exprA exprB -> applyOp op exprA exprB
-    _ -> error $ show expr ++ " is not implemented"
   where applyOp op opExprA opExprB =
           do a <- genAExpr opExprA
              b <- genAExpr opExprB

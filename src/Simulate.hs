@@ -6,6 +6,7 @@ module Simulate
 
 import Circuit
 
+import Prelude
 import Data.Vector((!),(//),Vector)
 import qualified Data.Vector as V
 import qualified Data.List as L
@@ -33,7 +34,10 @@ simulate circ = (varVals , ancInt)
             Fred c t1 t2 -> if vals ! c
                             then vals // [(t1, vals ! t2),(t2, vals ! t1)]
                             else vals
-            Hadamard a -> vals
+            -- TODO Simulation for Hadamard this is not implemented.
+            -- For now it just zeros the lines so that it works as it
+            -- should in the if statment case
+            Hadamard a -> vals // [(a, False)]
 
 
 intToBits :: Integer -> [Bool]

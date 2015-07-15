@@ -1,5 +1,6 @@
 module ParseJanus
   ( parseJanus
+  , arbitraryJanus
   , ModOp(..)
   , ABinOp(..)
   , BBinOp(..)
@@ -10,11 +11,15 @@ module ParseJanus
   , Janus
   ) where
 
+import Prelude
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
 import Control.Applicative hiding ((<|>))
+
+import Data.List
+import Test.QuickCheck
 
 -- | Reversible modification operators
 data ModOp = AddM
@@ -49,7 +54,6 @@ data RBinOp = RGT
 
 data AExpr = ConstInt Integer
            | Var String
-           | VarInd String Integer
            | ABinary ABinOp AExpr AExpr
              deriving (Show)
 
@@ -58,7 +62,6 @@ data BExpr = BBinary BBinOp BExpr BExpr
              deriving (Show)
 
 data Stmt = ModStmt String ModOp AExpr
-          | ModIndStmt String Integer ModOp AExpr
           --Supporting loops with constant bounds only
           | Loop String Integer Stmt Integer
           | IfElse BExpr Stmt Stmt BExpr
@@ -68,6 +71,36 @@ data Stmt = ModStmt String ModOp AExpr
 type Decl = [String]
 
 type Janus = (Decl,Stmt)
+
+--Here we define how to make an arbitrary program for testing purposes
+
+instance Arbitrary ModOp where
+  arbitrary = elements [AddM, SubM, XorM]
+
+instance Arbitrary ABinOp where
+  arbitrary = elements [Add, Sub, Xor, Mult, Div, Mod, And, Or]
+
+instance Arbitrary BBinOp where
+  arbitrary = elements [BAnd, BOr]
+
+instance Arbitrary RBinOp where
+  arbitrary = elements [RGT, RLT, RGTE, RLTE, RNE, RE]
+
+arbitraryJanus :: Gen Janus
+arbitraryJanus =
+  do
+  vars <- nub <$> arbitrary `suchThat` ( (2<) . length )
+  stmt <- mkStmt vars
+  return (vars , stmt)
+  where mkStmt vs = oneof [mkModStmt]
+          where mkModStmt = do var <- elements vs
+                               ModStmt var <$> arbitrary <*> mkAExpr (vs \\ [var])
+        mkAExpr vs = oneof
+                       [ ConstInt <$> choose (0,32)
+                       , Var <$> elements vs
+                       , ABinary <$> arbitrary <*> mkAExpr vs <*> mkAExpr vs
+                       ]
+
 
 lexer :: Token.TokenParser st
 lexer = Token.makeTokenParser languageDef
@@ -104,8 +137,7 @@ reserved,reservedOp :: String -> Parser ()
 reserved   = Token.reserved   lexer
 reservedOp = Token.reservedOp lexer
 
-brackets,parens :: Parser a -> Parser a
-brackets   = Token.brackets   lexer
+parens :: Parser a -> Parser a
 parens     = Token.parens     lexer
 
 integer :: Parser Integer
@@ -138,13 +170,9 @@ statement = parens statement <|>
                  <|> loopStatment
 
 modStatment :: Parser Stmt
-modStatment = try (ModIndStmt <$> identifier
-                              <*> brackets constant
-                              <*> modOp
-                              <*> aExpression)
-          <|> (ModStmt <$> identifier
-                       <*> modOp
-                       <*> aExpression)
+modStatment = ModStmt <$> identifier
+                      <*> modOp
+                      <*> aExpression
   where modOp = (reservedOp "+=" >> return AddM) <|>
                 (reservedOp "-=" >> return SubM) <|>
                 (reservedOp "^=" >> return XorM)
@@ -159,10 +187,6 @@ loopStatment = Loop <$> (reserved "loop" *> identifier)
                     <*> (reservedOp "=" *> integer)
                     <*> statement
                     <*> (reserved "until" *> integer)
-
-constant :: Parser Integer
-constant = rd <$> many1 digit
-  where rd = read :: String -> Integer
 
 aExpression :: Parser AExpr
 aExpression = buildExpressionParser aOperators aTerm

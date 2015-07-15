@@ -5,6 +5,7 @@ module Circuit
   , writeQC
   ) where
 
+import Prelude
 import Data.Vector((!))
 import qualified Data.Vector as V
 

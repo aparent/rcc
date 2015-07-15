@@ -1,6 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module CircuitDiagram (circuitToSvg) where
 
+import Prelude
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
 import Graphics.SVGFonts
@@ -9,7 +10,7 @@ import Data.List (foldl')
 
 import Circuit
 
-targetRad, ctrlRad, colSpace :: Double
+targetRad, charSize, ctrlRad, colSpace :: Double
 targetRad = 0.5
 charSize = 1
 ctrlRad = 0.2

@@ -20,5 +20,6 @@ tests =
     testGroup "Compiler"
     [
       testCase "Simple simulation test" simpleTestSim
+    , testProperty "Ancilla are zeroed" propAncillaZero
     ]
   ]
