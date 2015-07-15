@@ -59,9 +59,14 @@ genStmt stmt =
   let anc = ancInd currState
   case stmt of
     ModStmt v o e -> addGates $ handleOp vmap anc intS v o e
-    ModIndStmt{} -> return ()
-    IfElse cond tStmt eStmt asrt -> genIfElse cond tStmt eStmt asrt
-    Seq ss -> mapM_ genStmt ss
+    ModIndStmt{} ->
+      error "Index statments not yet implemented."
+    Loop var start s end ->
+      genLoop var start s end
+    IfElse cond tStmt eStmt asrt ->
+      genIfElse cond tStmt eStmt asrt
+    Seq ss ->
+      mapM_ genStmt ss
   where handleOp vmap ancIndex intS var op expr =
           case op of
             AddM -> gs ++ add anc out varInds ++ reverse gs
@@ -72,6 +77,43 @@ genStmt stmt =
                 gs = currGates gState
                 anc = ancInd gState
 
+genLoop :: String -> Integer -> Stmt -> Integer -> Gen ()
+genLoop var start stmt end =
+  genStmt $ Seq (map (setVar var stmt) [start .. end])
+
+setVar :: String -> Stmt -> Integer -> Stmt
+setVar var stmt value =
+  case stmt of
+    ModStmt v o e ->
+      ModStmt v o (setAE e)
+    ModIndStmt{} ->
+      error "Index statments not yet implemented."
+    Loop v start s end ->
+      Loop v start (setVar' s) end
+    IfElse cond tStmt eStmt asrt ->
+      IfElse (setBE cond) (setVar' tStmt) (setVar' eStmt) (setBE asrt)
+    Seq ss ->
+      Seq $ map setVar' ss
+  where setVar' s = setVar var s value
+        setBE bExpr =
+          case bExpr of
+            BBinary op exp1 exp2 ->
+              BBinary op (setBE exp1) (setBE exp2)
+            RBinary op exp1 exp2 ->
+              RBinary op (setAE exp1) (setAE exp2)
+        setAE aExpr =
+          case aExpr of
+            ConstInt _ ->
+              aExpr
+            Var varName ->
+              if varName == var then
+                ConstInt value
+              else
+                aExpr
+            VarInd _ _ ->
+              error "Index statments not yet implemented."
+            ABinary op exp1 exp2 ->
+              ABinary op (setAE exp1) (setAE exp2)
 
 incAncBy :: Int -> Gen ()
 incAncBy n = do currState <- get
@@ -121,8 +163,9 @@ varsModInStmt :: Stmt -> [String]
 varsModInStmt stmt =
  case stmt of
     ModStmt var _ _ -> [var]
-    ModIndStmt{} -> []
+    ModIndStmt{} -> error "Index statments not yet implemented."
     IfElse _ s1 s2 _ -> varsModInStmt s1 ++ varsModInStmt s2
+    Loop _ _ s _ -> varsModInStmt s
     Seq ss -> concatMap varsModInStmt ss
 
 genAExpr :: AExpr -> Gen [Int]

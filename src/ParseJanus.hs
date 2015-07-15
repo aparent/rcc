@@ -57,9 +57,10 @@ data BExpr = BBinary BBinOp BExpr BExpr
            | RBinary RBinOp AExpr AExpr
              deriving (Show)
 
---TODO: loops and such
 data Stmt = ModStmt String ModOp AExpr
           | ModIndStmt String Integer ModOp AExpr
+          --Supporting loops with constant bounds only
+          | Loop String Integer Stmt Integer
           | IfElse BExpr Stmt Stmt BExpr
           | Seq [Stmt]
             deriving (Show)
@@ -132,8 +133,9 @@ statement = parens statement <|>
   where sequenceOfStmt =
           do list <- endBy1 statement' semi
              return $ if length list == 1 then head list else Seq list
-        statement' = modStatment <|>
-                     ifElseStatment
+        statement' = modStatment
+                 <|> ifElseStatment
+                 <|> loopStatment
 
 modStatment :: Parser Stmt
 modStatment = try (ModIndStmt <$> identifier
@@ -152,6 +154,11 @@ ifElseStatment = IfElse <$> (reserved "if"   *> bExpression)
                         <*> (reserved "then" *> statement)
                         <*> (reserved "else" *> statement)
                         <*> (reserved "fi"   *> bExpression)
+loopStatment :: Parser Stmt
+loopStatment = Loop <$> (reserved "loop" *> identifier)
+                    <*> (reservedOp "=" *> integer)
+                    <*> statement
+                    <*> (reserved "until" *> integer)
 
 constant :: Parser Integer
 constant = rd <$> many1 digit
