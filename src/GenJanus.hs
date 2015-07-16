@@ -43,13 +43,18 @@ runGen k intS ancillaIndex vMap =
 genJanus :: Int -> Janus ->  Circuit
 genJanus intS (decl,stmt) =
   Circuit { circIntSize = intS
-          , inputs = decl
+          , inputs = varNames
           , gates = mkGates }
-  where inputMap = zip decl  $ f [0..]
+  where varNames = map fst decl
+        inputMap = zip varNames  $ f [0..]
         f ls = take intS ls : f (drop intS ls)
         (_,gState) = runGen (genStmt stmt) intS ancI inputMap
-        mkGates = currGates gState
+        mkGates = initVars ++ currGates gState
         ancI = intS * length decl
+        initVars = concatMap (\ (var,n) -> intGates n (getVar var)) decl
+          where getVar v = fromJust $ lookup v inputMap
+
+
 
 genStmt :: Stmt -> Gen ()
 genStmt stmt =
@@ -64,6 +69,10 @@ genStmt stmt =
       genLoop var start s end
     IfElse cond tStmt eStmt asrt ->
       genIfElse cond tStmt eStmt asrt
+    SwapStmt a b -> do
+      let indA = fromJust $ lookup a vmap
+      let indB = fromJust $ lookup b vmap
+      addGates $ zipWith Swap indA indB
     Seq ss ->
       mapM_ genStmt ss
   where handleOp vmap ancIndex intS var op expr =
@@ -87,6 +96,8 @@ setVar var stmt value =
       ModStmt v o (setAE e)
     Loop v start s end ->
       Loop v start (setVar' s) end
+    --Can only contain declared variables
+    SwapStmt _ _ -> stmt
     IfElse cond tStmt eStmt asrt ->
       IfElse (setBE cond) (setVar' tStmt) (setVar' eStmt) (setBE asrt)
     Seq ss ->
@@ -160,6 +171,7 @@ varsModInStmt stmt =
     ModStmt var _ _ -> [var]
     IfElse _ s1 s2 _ -> varsModInStmt s1 ++ varsModInStmt s2
     Loop _ _ s _ -> varsModInStmt s
+    SwapStmt a b -> [a,b]
     Seq ss -> concatMap varsModInStmt ss
 
 genAExpr :: AExpr -> Gen [Int]
@@ -211,11 +223,19 @@ genAExpr expr = do
         mkInt n = do intS <- intSize <$> ask
                      anc <- ancInd <$> get
                      let ancBits = [anc..anc+intS-1]
-                     let newGates = catMaybes $ zipWith (\a b -> if a == 0 then Nothing else Just (Not b)) (bits n) ancBits
+                     let newGates = intGates n ancBits
                      addGates newGates
                      incAncBy intS
                      return ancBits
-          where bits 0 = []
+
+intGates :: Integer -> [Int] -> [Gate]
+intGates n targs = catMaybes $ zipWith bitToGate (bits n) targs
+          where bitToGate bit targ =
+                  if bit == 0 then
+                    Nothing
+                  else
+                    Just (Not targ)
+                bits 0 = []
                 bits i = mod i 2 : bits (div i 2)
 
 aExprWithCleanup :: Gen a -> (a -> Gen b) -> Gen b

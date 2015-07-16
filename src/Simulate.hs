@@ -34,6 +34,7 @@ simulate circ = (varVals , ancInt)
             Fred c t1 t2 -> if vals ! c
                             then vals // [(t1, vals ! t2),(t2, vals ! t1)]
                             else vals
+            Swap t1 t2 -> vals // [(t1, vals ! t2),(t2, vals ! t1)]
             -- TODO Simulation for Hadamard this is not implemented.
             -- For now it just zeros the lines so that it works as it
             -- should in the if statment case

@@ -25,7 +25,6 @@ import Test.QuickCheck
 data ModOp = AddM
            | SubM
            | XorM
-             deriving (Show)
 
 -- | Arithmetic binary operators
 data ABinOp = Add
@@ -36,7 +35,6 @@ data ABinOp = Add
             | Mod
             | And
             | Or
-            deriving (Show)
 
 -- | Binary operators
 data BBinOp = BAnd
@@ -55,7 +53,6 @@ data RBinOp = RGT
 data AExpr = ConstInt Integer
            | Var String
            | ABinary ABinOp AExpr AExpr
-             deriving (Show)
 
 data BExpr = BBinary BBinOp BExpr BExpr
            | RBinary RBinOp AExpr AExpr
@@ -64,11 +61,11 @@ data BExpr = BBinary BBinOp BExpr BExpr
 data Stmt = ModStmt String ModOp AExpr
           --Supporting loops with constant bounds only
           | Loop String Integer Stmt Integer
+          | SwapStmt String String
           | IfElse BExpr Stmt Stmt BExpr
           | Seq [Stmt]
-            deriving (Show)
 
-type Decl = [String]
+type Decl = [(String,Integer)]
 
 type Janus = (Decl,Stmt)
 
@@ -86,15 +83,66 @@ instance Arbitrary BBinOp where
 instance Arbitrary RBinOp where
   arbitrary = elements [RGT, RLT, RGTE, RLTE, RNE, RE]
 
+instance Show Stmt where
+  show s =
+    case s of
+      ModStmt var op expr -> var ++ " " ++ show op ++ " " ++ show expr ++ "\n"
+      Loop var start stmt finish -> "Loop " ++ var ++ " = " ++ show start ++ "\n"
+                                 ++ (indent $ show stmt)
+                                 ++ "End " ++ show finish ++ "\n"
+      IfElse cond sThen sElse assert -> "if " ++ show cond ++ " then\n"
+                                     ++ (indent $ show sThen)
+                                     ++ "else\n"
+                                     ++ (indent $ show sElse)
+                                     ++ "fi" ++ show assert ++ "/n"
+      SwapStmt a b -> a ++ " <=> " ++ b
+      Seq ss -> concatMap show ss
+
+instance Show AExpr where
+  show expr =
+    case expr of
+      ConstInt i -> show i
+      Var s -> s
+      ABinary op expr1 expr2 -> show expr1 ++ " "++ show op ++ " " ++ show expr2
+
+instance Show ModOp where
+  show op =
+    case op of
+      AddM -> "+="
+      SubM -> "-="
+      XorM -> "^="
+
+instance Show ABinOp where
+ show op =
+  case op of
+    Add  -> "+"
+    Sub  -> "-"
+    Xor  -> "^"
+    Mult -> "*"
+    Div  -> "/"
+    Mod  -> "%"
+    And  -> "&"
+    Or   -> "|"
+
+
+indent :: String -> String
+indent = unlines . map ('\t':) . lines
+
 arbitraryJanus :: Gen Janus
 arbitraryJanus =
   do
-  vars <- nub <$> arbitrary `suchThat` ( (2<) . length )
-  stmt <- mkStmt vars
+  vars <- ((flip zip) (repeat 0) . nub) <$> listOf1 arbVarName `suchThat` ( (2<) . length )
+  stmt <- mkStmt (map fst vars)
   return (vars , stmt)
-  where mkStmt vs = oneof [mkModStmt]
+  where arbVarName = (listOf1 $ elements ['a'..'z']) `suchThat` ( (5>) . length )
+        mkStmt vs = Seq <$> listOf1 (oneof [mkModStmt])
           where mkModStmt = do var <- elements vs
                                ModStmt var <$> arbitrary <*> mkAExpr (vs \\ [var])
+                --mkLoop = Loop <$> (arbVarName `suchThat` (not . (flip elem) vs))
+                --              <*> choose (1,4)
+                --              <*> (Seq <$> listOf1 (oneof [mkModStmt]))
+                --              <*> choose (5,8)
+
         mkAExpr vs = oneof
                        [ ConstInt <$> choose (0,32)
                        , Var <$> elements vs
@@ -125,7 +173,7 @@ lexer = Token.makeTokenParser languageDef
                                , Token.reservedOpNames = ["-=", "+=", "^="
                                                         , "+", "-", "*", "^", "%", "/", "&", "|"
                                                         , "=" , "<=", ">=", "!=", "<", ">"
-                                                        , "||", "&&"
+                                                        , "||", "&&", "<=>"
                                                         ]
                                }
 
@@ -156,8 +204,15 @@ janus = do whiteSpace
            (,) <$> declarations
                <*> statement
 
-declarations :: Parser [String]
-declarations = many1 identifier <* semi
+declarations :: Parser [(String,Integer)]
+declarations = many1 decl <* semi
+  where decl = (try $ (,) <$> (identifier <* reservedOp "=")
+                          <*> integer)
+           <|> (,) <$> identifier
+                   <*> pure 0
+
+
+
 
 statement :: Parser Stmt
 statement = parens statement <|>
@@ -165,9 +220,14 @@ statement = parens statement <|>
   where sequenceOfStmt =
           do list <- endBy1 statement' semi
              return $ if length list == 1 then head list else Seq list
-        statement' = modStatment
+        statement' = try modStatment
+                 <|> swapStatment
                  <|> ifElseStatment
                  <|> loopStatment
+
+swapStatment :: Parser Stmt
+swapStatment = SwapStmt <$> (identifier <* reservedOp "<=>" )
+                        <*> identifier
 
 modStatment :: Parser Stmt
 modStatment = ModStmt <$> identifier
