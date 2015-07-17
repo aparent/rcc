@@ -1,6 +1,24 @@
 # jcc
 Janus Circuit Compiler 
 
+##Installing
+
+Create a sandbox (recommended) with:
+
+`cabal sandbox init`
+
+Install dependencies:
+
+`cabal install --dependencies-only`
+
+Now build the actual project using:
+
+`cabal build`
+
+It will place the jcc binary in `dist/build/jcc/jcc`.
+
+##Useage
+
 For help use:
 
 jcc -h 
