@@ -2,6 +2,7 @@ module CompileTests
 (
   simpleTestSim
 , propAncillaZero
+, propAncillaZeroOpt
 ) where
 
 import Test.HUnit
@@ -9,6 +10,7 @@ import Test.QuickCheck
 
 import ParseJanus
 import GenJanus
+import CircuitOptimize
 import Simulate
 
 simpleProg :: String
@@ -22,6 +24,9 @@ simpleProg =
 
 propAncillaZero :: Property
 propAncillaZero = forAll arbitraryJanus $ (== 0) . snd . simulate . genJanus 5
+
+propAncillaZeroOpt :: Property
+propAncillaZeroOpt = forAll arbitraryJanus $ (== 0) . snd . simulate . optimize . genJanus 5
 
 testProgSim :: String -> ([(String,Integer)],Integer) -> Assertion
 testProgSim prog expected =

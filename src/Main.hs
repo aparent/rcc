@@ -4,6 +4,7 @@ import ParseJanus
 import GenJanus
 import Circuit
 import CircuitDiagram
+import CircuitOptimize
 import Simulate
 
 data Options = Options
@@ -34,10 +35,12 @@ main = do
     Left pe -> print pe
     Right jan -> do
         let circ = genJanus (intSize options) jan
+        let circOpt = optimize circ
         print circ
-        putStrLn $ writeQC circ
-        putStrLn $ formatSimOutput $ simulate circ
+        putStrLn $ writeQC circOpt
+        putStrLn $ formatSimOutput $ simulate circOpt
         circuitToSvg circ "circ.svg" 1000
+        circuitToSvg circOpt "circOpt.svg" 1000
   return ()
 
 formatSimOutput :: ([(String,Integer)] , Integer) -> String

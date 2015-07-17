@@ -20,6 +20,7 @@ tests =
     testGroup "Compiler"
     [
       testCase "Simple simulation test" simpleTestSim
-    , testProperty "Ancilla are zeroed" propAncillaZero
+    , testProperty "Ancilla are zeroed for unoptimized circuits" propAncillaZero
+    , testProperty "Ancilla are zeroed for Optimized circuits" propAncillaZeroOpt
     ]
   ]
