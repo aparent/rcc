@@ -88,12 +88,12 @@ instance Show Stmt where
     case s of
       ModStmt var op expr -> var ++ " " ++ show op ++ " " ++ show expr ++ "\n"
       Loop var start stmt finish -> "Loop " ++ var ++ " = " ++ show start ++ "\n"
-                                 ++ (indent $ show stmt)
+                                 ++ indent (show stmt)
                                  ++ "End " ++ show finish ++ "\n"
       IfElse cond sThen sElse assert -> "if " ++ show cond ++ " then\n"
-                                     ++ (indent $ show sThen)
+                                     ++ indent (show sThen)
                                      ++ "else\n"
-                                     ++ (indent $ show sElse)
+                                     ++ indent (show sElse)
                                      ++ "fi" ++ show assert ++ "/n"
       SwapStmt a b -> a ++ " <=> " ++ b
       Seq ss -> concatMap show ss
@@ -131,10 +131,10 @@ indent = unlines . map ('\t':) . lines
 arbitraryJanus :: Gen Janus
 arbitraryJanus =
   do
-  vars <- ((flip zip) (repeat 0) . nub) <$> listOf1 arbVarName `suchThat` ( (2<) . length )
+  vars <- (flip zip (repeat 0) . nub) <$> listOf1 arbVarName `suchThat` ( (2<) . length )
   stmt <- mkStmt (map fst vars)
   return (vars , stmt)
-  where arbVarName = (listOf1 $ elements ['a'..'z']) `suchThat` ( (5>) . length )
+  where arbVarName = listOf1 $ elements ['a'..'z'] `suchThat` ( (5>) . length )
         mkStmt vs = Seq <$> listOf1 (oneof [mkModStmt])
           where mkModStmt = do var <- elements vs
                                ModStmt var <$> arbitrary <*> mkAExpr (vs \\ [var])
@@ -206,8 +206,8 @@ janus = do whiteSpace
 
 declarations :: Parser [(String,Integer)]
 declarations = many1 decl <* semi
-  where decl = (try $ (,) <$> (identifier <* reservedOp "=")
-                          <*> integer)
+  where decl = try $ (,) <$> (identifier <* reservedOp "=")
+                         <*> integer
            <|> (,) <$> identifier
                    <*> pure 0
 
