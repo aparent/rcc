@@ -8,23 +8,10 @@ import CircuitOptimize
 import Simulate
 
 data Options = Options
-  { inputFile :: String,
-    intSize :: Int }
-
-opts :: ParserInfo Options
-opts = info (helper <*> options)
-      ( fullDesc
-     <> progDesc "Compile TARGET"
-     <> header "jcc - A circuit compiler for Janus" )
-  where options =
-          Options
-          <$> argument str (metavar "TARGET")
-          <*> option auto
-              ( long "int-size"
-             <> short 's'
-             <> metavar "SIZE"
-             <> help "Specify how many bit should be used to represent an integer"
-             <> value 4)
+  { inputFile  :: String,
+    intSize    :: Int,
+    diagram    :: Maybe String,
+    optimizeOn :: Bool }
 
 main :: IO ()
 main = do
@@ -34,14 +21,22 @@ main = do
   case pj of
     Left pe -> print pe
     Right jan -> do
-        let circ = genJanus (intSize options) jan
-        let circOpt = optimize circ
+        let circ = mkCirc jan options
         print circ
-        putStrLn $ writeQC circOpt
-        putStrLn $ formatSimOutput $ simulate circOpt
-        circuitToSvg circ "circ.svg" 1000
-        circuitToSvg circOpt "circOpt.svg" 1000
+        putStrLn . writeQC $ circ
+        putStrLn . formatSimOutput . simulate $ circ
+        case diagram options of
+          Nothing -> return ()
+          Just fn ->
+            circuitToSvg circ fn 1000
   return ()
+
+mkCirc :: Janus -> Options -> Circuit
+mkCirc jan options =
+  if optimizeOn options then
+    optimize . genJanus (intSize options) $ jan
+  else
+    genJanus (intSize options) jan
 
 formatSimOutput :: ([(String,Integer)] , Integer) -> String
 formatSimOutput (vals,anc) = "\nSimulation Results:"
@@ -49,3 +44,27 @@ formatSimOutput (vals,anc) = "\nSimulation Results:"
                           ++ "\nAncilla (zero means cleared): "
                           ++ show anc
   where vs = concatMap (\(var,val) -> '\n' : '\t' : var ++ " = " ++ show val) vals
+
+
+opts :: ParserInfo Options
+opts = info (helper <*> options)
+      ( fullDesc
+     <> progDesc "Compile TARGET"
+     <> header "jcc - A circuit compiler for Janus" )
+  where defIntSize = 4
+        options =
+          Options
+          <$> argument str (metavar "TARGET")
+          <*> option auto
+              ( short 's'
+             <> metavar "SIZE"
+             <> help ("Specify how many bit should be used to represent an integer (default "
+                  ++ show defIntSize ++" bits)")
+             <> value defIntSize)
+          <*> optional (strOption $
+                short 'd'
+             <> metavar "FILENAME"
+             <> help "Write an svg to the specified file" )
+          <*> switch
+              ( short 'O'
+              <> help "Turn on optimizations" )
