@@ -113,23 +113,19 @@ setVar var stmt value =
           case aExpr of
             ConstInt _ ->
               aExpr
-            Var varName ->
-              if varName == var then
-                ConstInt value
-              else
-                aExpr
+            Var varName
+              | varName == var -> ConstInt value
+              | otherwise -> aExpr
             ABinary op exp1 exp2 ->
               ABinary op (setAE exp1) (setAE exp2)
 
 incAncBy :: Int -> Gen ()
-incAncBy n = do currState <- get
-                let currAnc = ancInd currState
-                put currState { ancInd = currAnc + n }
+incAncBy n =
+  modify $ \s -> s {ancInd = ancInd s + n}
 
 addGates :: [Gate] -> Gen ()
-addGates newGates = do currState <- get
-                       let gs = currGates currState
-                       put currState { currGates = gs ++ newGates }
+addGates newGates =
+  modify $ \s -> s { currGates = currGates s ++ newGates}
 
 -- If statments are done by using a controlled swap to move the bits into the correct branch.
 -- The other branch is given the HxH..xH|00..> state.

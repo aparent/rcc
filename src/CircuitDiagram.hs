@@ -69,12 +69,10 @@ drawCnot t cs =  circle targetRad # lw thin  # translateY t
               <> line
   where line = drawLine 0 (top - bottom)
              # translateY bottom
-          where top = if maxY == t
-                      then maxY + targetRad
-                      else maxY
-                bottom = if minY == t
-                         then minY - targetRad
-                         else minY
+          where top | maxY == t = maxY + targetRad
+                    | otherwise = maxY
+                bottom | minY == t = minY - targetRad
+                       | otherwise = minY
                 maxY = maximum (t:cs)
                 minY = minimum (t:cs)
         controls = mconcat $ map drawCtrl cs
@@ -93,7 +91,7 @@ drawSwap t1 t2 cs = targ # translateY t1
              # translateY bottom
           where top = maximum (t1:t2:cs)
                 bottom = minimum (t1:t2:cs)
-        controls = mconcat $ map drawCtrl cs
+        controls = mconcat . map drawCtrl $ cs
 
 drawLine :: Double -> Double -> Diagram B
 drawLine x y = fromSegments [straight $ r2(x,y) ] # lw thin

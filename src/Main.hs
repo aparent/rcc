@@ -32,11 +32,9 @@ main = do
   return ()
 
 mkCirc :: Janus -> Options -> Circuit
-mkCirc jan options =
-  if optimizeOn options then
-    optimize . genJanus (intSize options) $ jan
-  else
-    genJanus (intSize options) jan
+mkCirc jan options
+  | optimizeOn options = optimize . genJanus (intSize options) $ jan
+  | otherwise = genJanus (intSize options) jan
 
 formatSimOutput :: ([(String,Integer)] , Integer) -> String
 formatSimOutput (vals,anc) = "\nSimulation Results:"
