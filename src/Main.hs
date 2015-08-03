@@ -5,6 +5,7 @@ import GenJanus
 import Circuit
 import CircuitDiagram
 import CircuitOptimize
+import SimplifyJanus
 import Simulate
 
 data Options = Options
@@ -21,7 +22,13 @@ main = do
   case pj of
     Left pe -> print pe
     Right jan -> do
-        let circ = mkCirc jan options
+        putStrLn "\nParsed: "
+        print jan
+        putStrLn "\nSimplified: "
+        let simpJan = simplify jan
+        print simpJan
+        putStrLn "\nGenerated: "
+        let circ = mkCirc simpJan options
         print circ
         putStrLn . writeQC $ circ
         putStrLn . formatSimOutput . simulate $ circ

@@ -7,7 +7,7 @@ import Prelude
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
-import Control.Applicative
+import Control.Applicative hiding (Const)
 import Control.Exception
 import Data.Maybe
 import Data.List(nub)
@@ -41,7 +41,7 @@ runGen k intS ancillaIndex vMap =
     in runState (runReaderT (runG k) config) genState
 
 genJanus :: Int -> Janus ->  Circuit
-genJanus intS (decl,stmt) =
+genJanus intS (Janus (decl,stmt)) =
   Circuit { circIntSize = intS
           , inputs = varNames
           , gates = mkGates }
@@ -111,10 +111,10 @@ setVar var stmt value =
               RBinary op (setAE exp1) (setAE exp2)
         setAE aExpr =
           case aExpr of
-            ConstInt _ ->
+            Const _ ->
               aExpr
             Var varName
-              | varName == var -> ConstInt value
+              | varName == var -> Const value
               | otherwise -> aExpr
             ABinary op exp1 exp2 ->
               ABinary op (setAE exp1) (setAE exp2)
@@ -174,7 +174,7 @@ genAExpr :: AExpr -> Gen [Int]
 genAExpr expr = do
   vmap <- varMap <$> ask
   case expr of
-    ConstInt n -> mkInt n
+    Const n -> mkInt n
     --Note: fromJust is used, if the var is not in the map it means
     --an undecleared var is being used an the compiler fails
     --might want to add the possiblity of code gen failing with error

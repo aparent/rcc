@@ -8,7 +8,7 @@ module ParseJanus
   , AExpr(..)
   , BExpr(..)
   , Stmt(..)
-  , Janus
+  , Janus(..)
   ) where
 
 import Prelude
@@ -16,7 +16,7 @@ import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
-import Control.Applicative hiding ((<|>))
+import Control.Applicative hiding ((<|>), Const)
 
 import Data.List
 import Test.QuickCheck
@@ -50,7 +50,7 @@ data RBinOp = RGT
             | RE
               deriving (Show)
 
-data AExpr = ConstInt Integer
+data AExpr = Const Integer
            | Var String
            | ABinary ABinOp AExpr AExpr
 
@@ -65,9 +65,7 @@ data Stmt = ModStmt String ModOp AExpr
           | IfElse BExpr Stmt Stmt BExpr
           | Seq [Stmt]
 
-type Decl = [(String,Integer)]
-
-type Janus = (Decl,Stmt)
+newtype Janus = Janus ( [(String,Integer)] , Stmt )
 
 --Here we define how to make an arbitrary program for testing purposes
 
@@ -94,16 +92,16 @@ instance Show Stmt where
                                      ++ indent (show sThen)
                                      ++ "else\n"
                                      ++ indent (show sElse)
-                                     ++ "fi" ++ show assert ++ "/n"
+                                     ++ "fi " ++ show assert ++ "/n"
       SwapStmt a b -> a ++ " <=> " ++ b
       Seq ss -> concatMap show ss
 
 instance Show AExpr where
   show expr =
     case expr of
-      ConstInt i -> show i
+      Const i -> show i
       Var s -> s
-      ABinary op expr1 expr2 -> show expr1 ++ " "++ show op ++ " " ++ show expr2
+      ABinary op expr1 expr2 -> "( " ++ show expr1 ++ " "++ show op ++ " " ++ show expr2 ++ " )"
 
 instance Show ModOp where
   show op =
@@ -124,6 +122,11 @@ instance Show ABinOp where
     And  -> "&"
     Or   -> "|"
 
+instance Show Janus where
+  show (Janus (decl,stmt)) = declStr decl ++ ";\n" ++ show stmt
+    where declStr = unwords . map (\(var,val) -> var ++ " = " ++ show val)
+
+
 
 indent :: String -> String
 indent = unlines . map ('\t':) . lines
@@ -131,9 +134,9 @@ indent = unlines . map ('\t':) . lines
 arbitraryJanus :: Gen Janus
 arbitraryJanus =
   do
-  vars <- (flip zip (repeat 0) . nub) <$> listOf1 arbVarName `suchThat` ( (2<) . length )
+  vars <- flip zip (repeat 0) . nub <$> listOf1 arbVarName `suchThat` ( (2<) . length )
   stmt <- mkStmt (map fst vars)
-  return (vars , stmt)
+  return $ Janus (vars , stmt)
   where arbVarName = listOf1 (elements ['a'..'z']) `suchThat` ( (5>) . length )
         mkStmt vs = Seq <$> listOf1 (oneof [mkModStmt])
           where mkModStmt = do var <- elements vs
@@ -144,7 +147,7 @@ arbitraryJanus =
                 --              <*> choose (5,8)
 
         mkAExpr vs = oneof
-                       [ ConstInt <$> choose (0,32)
+                       [ Const <$> choose (0,32)
                        , Var <$> elements vs
                        , ABinary <$> arbitrary <*> mkAExpr vs <*> mkAExpr vs
                        ]
@@ -201,8 +204,7 @@ parseJanus = parse janus
 
 janus :: Parser Janus
 janus = do whiteSpace
-           (,) <$> declarations
-               <*> statement
+           fmap Janus $ (,) <$> declarations <*> statement
 
 declarations :: Parser [(String,Integer)]
 declarations = many1 decl <* semi
@@ -252,7 +254,7 @@ aExpression :: Parser AExpr
 aExpression = buildExpressionParser aOperators aTerm
   where aTerm = parens aExpression <|>
                 Var <$> identifier <|>
-                ConstInt <$> integer
+                Const <$> integer
         aOperators = [
                        [
                          Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
