@@ -7,7 +7,7 @@ import Prelude
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
-import Control.Applicative hiding (Const)
+--import Control.Applicative hiding (Const)
 import Control.Exception
 import Data.Maybe
 import Data.List(nub)

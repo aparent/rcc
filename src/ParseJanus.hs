@@ -16,7 +16,7 @@ import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
-import Control.Applicative hiding ((<|>), Const)
+--import Control.Applicative hiding ((<|>), Const)
 
 import Data.List
 import Test.QuickCheck

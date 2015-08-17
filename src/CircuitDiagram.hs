@@ -1,4 +1,3 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
 module CircuitDiagram (circuitToSvg) where
 
 import Prelude

@@ -56,7 +56,7 @@ opts = info (helper <*> options)
       ( fullDesc
      <> progDesc "Compile TARGET"
      <> header "jcc - A circuit compiler for Janus" )
-  where defIntSize = 4
+  where defIntSize = 4 :: Int
         options =
           Options
           <$> argument str (metavar "TARGET")
