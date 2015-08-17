@@ -6,7 +6,6 @@ module CompileTests
 ) where
 
 import Test.HUnit
-import Test.QuickCheck
 
 import ParseJanus
 import GenJanus
@@ -22,11 +21,11 @@ simpleProg =
   , "x1 += x2;" ]
 
 
-propAncillaZero :: Property
-propAncillaZero = forAll arbitraryJanus $ (== 0) . snd . simulate . genJanus 5
+propAncillaZero :: Janus -> Bool
+propAncillaZero = (== 0) . snd . simulate . genJanus 5
 
-propAncillaZeroOpt :: Property
-propAncillaZeroOpt = forAll arbitraryJanus $ (== 0) . snd . simulate . optimize . genJanus 5
+propAncillaZeroOpt :: Janus -> Bool
+propAncillaZeroOpt = (== 0) . snd . simulate . optimize . genJanus 5
 
 testProgSim :: String -> ([(String,Integer)],Integer) -> Assertion
 testProgSim prog expected =

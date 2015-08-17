@@ -1,6 +1,5 @@
 module ParseJanus
   ( parseJanus
-  , arbitraryJanus
   , ModOp(..)
   , ABinOp(..)
   , BBinOp(..)
@@ -131,26 +130,26 @@ instance Show Janus where
 indent :: String -> String
 indent = unlines . map ('\t':) . lines
 
-arbitraryJanus :: Gen Janus
-arbitraryJanus =
-  do
-  vars <- flip zip (repeat 0) . nub <$> listOf1 arbVarName `suchThat` ( (2<) . length )
-  stmt <- mkStmt (map fst vars)
-  return $ Janus (vars , stmt)
-  where arbVarName = listOf1 (elements ['a'..'z']) `suchThat` ( (5>) . length )
-        mkStmt vs = Seq <$> listOf1 (oneof [mkModStmt])
-          where mkModStmt = do var <- elements vs
-                               ModStmt var <$> arbitrary <*> mkAExpr (vs \\ [var])
-                --mkLoop = Loop <$> (arbVarName `suchThat` (not . (flip elem) vs))
-                --              <*> choose (1,4)
-                --              <*> (Seq <$> listOf1 (oneof [mkModStmt]))
-                --              <*> choose (5,8)
+instance Arbitrary Janus where
+  arbitrary =
+    do
+    vars <- flip zip (repeat 0) . nub <$> listOf1 arbVarName `suchThat` ( (2<) . length )
+    stmt <- mkStmt (map fst vars)
+    return $ Janus (vars , stmt)
+    where arbVarName = listOf1 (elements ['a'..'z']) `suchThat` ( (5>) . length )
+          mkStmt vs = Seq <$> listOf1 (oneof [mkModStmt])
+            where mkModStmt = do var <- elements vs
+                                 ModStmt var <$> arbitrary <*> mkAExpr (vs \\ [var])
+                  --mkLoop = Loop <$> (arbVarName `suchThat` (not . (flip elem) vs))
+                  --              <*> choose (1,4)
+                  --              <*> (Seq <$> listOf1 (oneof [mkModStmt]))
+                  --              <*> choose (5,8)
 
-        mkAExpr vs = oneof
-                       [ Const <$> choose (0,32)
-                       , Var <$> elements vs
-                       , ABinary <$> arbitrary <*> mkAExpr vs <*> mkAExpr vs
-                       ]
+          mkAExpr vs = oneof
+                         [ Const <$> choose (0,32)
+                         , Var <$> elements vs
+                         , ABinary <$> arbitrary <*> mkAExpr vs <*> mkAExpr vs
+                         ]
 
 
 lexer :: Token.TokenParser st

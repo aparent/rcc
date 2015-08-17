@@ -123,6 +123,9 @@ incAncBy :: Int -> Gen ()
 incAncBy n =
   modify $ \s -> s {ancInd = ancInd s + n}
 
+decAncBy :: Int -> Gen ()
+decAncBy n = incAncBy $ negate n
+
 addGates :: [Gate] -> Gen ()
 addGates newGates =
   modify $ \s -> s { currGates = currGates s ++ newGates}
@@ -152,9 +155,9 @@ genIfElse condition thenStmt elseStmt assertion =
      config <- ask
      local (\_->  config {varMap = newVmap}) $ genStmt thenStmt --Then branch uses the other set of gates
      addGates $ reverse swapGates
-     incAncBy $ negate swapSize
+     decAncBy swapSize
      genBExpr assertion ctrl
-     incAncBy $ negate 1
+     decAncBy 1
   where varsInStmts = nub $ varsModInStmt $ Seq [thenStmt,elseStmt]
 
 ctrledSwap :: Int -> [Int] -> [Int] -> [Gate]
@@ -341,6 +344,5 @@ mult :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 mult _ [] _ _ = []
 mult c as bs rs = ctrlAdd c (head as) bs rs ++ mult c (tail as) (init bs) (tail rs)
 
---div :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
---div c
-
+divide :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
+divide as bs rs = undefined
