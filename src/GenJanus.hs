@@ -344,5 +344,5 @@ mult :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 mult _ [] _ _ = []
 mult c as bs rs = ctrlAdd c (head as) bs rs ++ mult c (tail as) (init bs) (tail rs)
 
-divide :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
-divide as bs rs = undefined
+--divide :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
+--divide as bs rs = undefined
