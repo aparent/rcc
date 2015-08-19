@@ -6,7 +6,9 @@ import           Hakyll
 
 --------------------------------------------------------------------------------
 main :: IO ()
-main = hakyll $ do
+main = do
+  basicExample <- readFile "examples/basic_example.j"   
+  hakyll $ do
     match "images/*" $ do
         route   idRoute
         compile copyFileCompiler
@@ -15,7 +17,18 @@ main = hakyll $ do
         route   idRoute
         compile compressCssCompiler
 
-    match "docs/*" $ do
+    match "docs/examples.markdown" $ do
+        route $ setExtension "html"
+        compile $ do
+          let ctx =
+                constField "basicExample" basicExample `mappend`
+                defaultContext
+          pandocCompiler
+            >>= applyAsTemplate ctx
+            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= relativizeUrls
+
+    match "docs/installing.markdown" $ do
         route $ setExtension "html"
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
@@ -40,4 +53,5 @@ main = hakyll $ do
                 >>= relativizeUrls
 
     match "templates/*" $ compile templateCompiler
+
 

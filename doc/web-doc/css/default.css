@@ -1,7 +1,9 @@
-
+html{
+  font-size: 21px;
+}
 
 body{
-    font-family: "Lucida Grande", sans-serif;
+    font-family: Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif;;
     line-height:1.4;
     margin:auto;
     font-size: 70%;
@@ -26,6 +28,10 @@ body{
 }
 @media (min-width: 1450px){
     body { width: 40%; font-size: 120%; }
+}
+
+img {
+  width: 100%;
 }
 
 a {
@@ -86,13 +92,12 @@ div#header #navigation a {
     font-weight: bold;
     margin-left: 12px;
     text-decoration: none;
-    text-transform: uppercase;
 }
 
 div#footer {
     border-top: solid 2px gray;
     color: #555;
-    font-size: 12px;
+    font-size: 75%;
     margin-top: 30px;
     padding: 12px 0px 12px 0px;
     text-align: right;

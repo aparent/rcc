@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- '.'
+- doc/web-doc/
+extra-deps: []
+resolver: lts-3.1
