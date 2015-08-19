@@ -23,7 +23,7 @@ main = do
           let ctx =
                 constField "basicExample" basicExample `mappend`
                 defaultContext
-          pandocCompiler
+          getResourceBody
             >>= applyAsTemplate ctx
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
