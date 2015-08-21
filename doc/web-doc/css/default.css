@@ -34,6 +34,10 @@ img {
   width: 100%;
 }
 
+p.caption {
+    text-align: center;
+}
+
 a {
     text-decoration: none;
     color: inherit;
@@ -48,7 +52,7 @@ a:hover {
     border-radius: 8px;
 }
 
-ul.toc { 
+ul.toc {
     font-size: 110%;
     column-count: 2;
     column-gap: 2em;
@@ -115,4 +119,10 @@ div.info {
     color: #555;
     font-size: 14px;
     font-style: italic;
+}
+
+code {
+    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 75%;
+    white-space: pre;
 }

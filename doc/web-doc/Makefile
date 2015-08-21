@@ -1,5 +1,5 @@
 DIA = $(addprefix images/, \
-			 	basic_example.svg)
+			 	basicExample.svg add.svg mult.svg)
 
 all: $(DIA)
 
