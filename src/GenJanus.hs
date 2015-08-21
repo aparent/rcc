@@ -11,6 +11,7 @@ import Control.Monad.Reader
 import Control.Exception
 import Data.Maybe
 import Data.List(nub)
+import Debug.Trace
 
 data GenState = GenState { ancInd :: Int
                          , currGates :: [Gate]
@@ -146,7 +147,8 @@ genIfElse condition thenStmt elseStmt assertion =
      let swapGates = let swapAnc = [ctrl + 1 .. ctrl + swapSize]
                      in map Hadamard swapAnc ++ ctrledSwap ctrl swapFrom swapAnc
      let newVmap = let f ls = take intS ls : f (drop intS ls)
-                    in zip varsInStmts $ f [ctrl+1..]
+                    in filter (\(v,_)-> not $ elem v varsInStmts) vmap
+                       ++ (zip varsInStmts $ f [ctrl+1..])
      incAncBy 1
      genBExpr condition ctrl
      incAncBy swapSize
@@ -181,7 +183,7 @@ genAExpr expr = do
     --Note: fromJust is used, if the var is not in the map it means
     --an undecleared var is being used an the compiler fails
     --might want to add the possiblity of code gen failing with error
-    Var v -> return $ fromJust $ lookup v vmap
+    Var v -> return $ fromJust $ traceShow (v,vmap) $ lookup v vmap
     ABinary op exprA exprB -> applyOp op exprA exprB
   where applyOp op opExprA opExprB =
           do a <- genAExpr opExprA
