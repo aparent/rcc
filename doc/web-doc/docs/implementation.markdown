@@ -47,3 +47,8 @@ $mult$
 
 Conditional if-else branches can be evaluated by evaluating the conditional statement then swapping the bits to the correct circuit path controlled on the result.
 
+```
+$ifExample$
+```
+
+![](../images/ifExample.svg)

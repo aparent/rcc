@@ -1,17 +1,19 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
-import           Data.Monoid (mappend)
+import           Data.Monoid (mappend,mconcat,(<>))
 import           Hakyll
 import qualified Data.Set as S
+import qualified Data.Map as M
 import           Text.Pandoc.Options
 import           Control.Monad(liftM)
+import           System.Directory
+import           System.FilePath
+import           Control.Applicative((<$>),(<*>))
 
 --------------------------------------------------------------------------------
 main :: IO ()
 main = do
-  basicExample <- readFile "examples/basicExample.j"
-  addExample <- readFile "examples/add.j"
-  multExample <- readFile "examples/mult.j"
+  exampleContext <- mconcat . map (uncurry constField) <$> getExamples
   hakyll $ do
     match "bib/*" $ compile biblioCompiler
     match "csl/*" $ compile cslCompiler
@@ -23,34 +25,13 @@ main = do
         route   idRoute
         compile compressCssCompiler
 
-    match "docs/implementation.markdown" $ do
+    match "docs/*" $ do
         route $ setExtension "html"
         compile $ do
-            let ctx = constField "add" addExample `mappend`
-                      constField "mult" multExample `mappend`
-                      defaultContext
+            let ctx = exampleContext <> defaultContext
             bibtexMathCompilerCtx ctx "csl/default.csl" "bib/default.bib"
                 >>= loadAndApplyTemplate "templates/default.html" defaultContext
                 >>= relativizeUrls
-
-
-    match "docs/examples.markdown" $ do
-        route $ setExtension "html"
-        compile $ do
-          let ctx =
-                constField "basicExample" basicExample `mappend`
-                defaultContext
-          getResourceBody
-            >>= applyAsTemplate ctx
-            >>= renderPandocMath
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
-            >>= relativizeUrls
-
-    match "docs/*" $ do
-        route $ setExtension "html"
-        compile $ pandocMathCompiler
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
-            >>= relativizeUrls
 
     match "docs.markdown" $ do
         route $ setExtension "html"
@@ -71,6 +52,15 @@ main = do
                 >>= relativizeUrls
 
     match "templates/*" $ compile templateCompiler
+
+getExamples :: IO  [(String,String)]
+getExamples = do
+    filepaths <- map ("examples" </>)
+                 . filter ((== ".j") . takeExtension)
+                 <$> getDirectoryContents "examples"
+    putStrLn $ show filepaths
+    contents <- mapM readFile filepaths
+    return $ zip (map takeBaseName filepaths) contents
 
 bibtexMathCompilerCtx :: Context String -> String -> String -> Compiler (Item String)
 bibtexMathCompilerCtx ctx cslFileName bibFileName = do
