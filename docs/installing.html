@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>jcc - Installing</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">jcc</a>
+            </div>
+            <div id="navigation">
+                <a href="../docs.html">Docs</a>
+                <a href="https://github.com/aparent/jcc">Code</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Installing</h1>
+
+            <h2 id="stack">Stack</h2>
+<p><code>stack setup</code></p>
+<p><code>stack install</code></p>
+<h2 id="cabal">Cabal</h2>
+<p>Create a sandbox (recommended) with:</p>
+<p><code>cabal sandbox init</code></p>
+<p>Install dependencies:</p>
+<p><code>cabal install --dependencies-only</code></p>
+<p>Now build the actual project using:</p>
+<p><code>cabal build</code></p>
+<p>It will place the jcc binary in <code>dist/build/jcc/jcc</code>.</p>
+<div class="references">
+
+</div>
+        </div>
+        <div id="footer">
+        </div>
+    </body>
+</html>

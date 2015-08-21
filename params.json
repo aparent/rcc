@@ -1,1 +1,0 @@
-{"name":"jcc","tagline":"Janus Circuit Compiler ","body":"### Examples\r\n\r\nThe code:\r\n\r\n```\r\nx1 x2;\r\n\r\nif x2 < x1 then\r\n  x1 += 15;\r\nelse\r\n  x1 += 8;\r\nfi x2 < x1;\r\nx2 ^= x1;\r\n```\r\n\r\nGenerates the Following circuit:\r\n\r\n![](example1.svg)","google":"","note":"Don't delete this file! It's used internally to help with page regeneration."}
