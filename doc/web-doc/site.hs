@@ -58,7 +58,6 @@ getExamples = do
     filepaths <- map ("examples" </>)
                  . filter ((== ".j") . takeExtension)
                  <$> getDirectoryContents "examples"
-    putStrLn $ show filepaths
     contents <- mapM readFile filepaths
     return $ zip (map takeBaseName filepaths) contents
 
@@ -81,8 +80,13 @@ mathWriterOptions :: WriterOptions
 mathWriterOptions =
     defaultHakyllWriterOptions {
         writerExtensions = newExtensions,
-        writerHTMLMathMethod = MathJax "" }
+        writerHTMLMathMethod = MathJax "",
+        writerTableOfContents = True,
+        writerStandalone = True,
+        writerTemplate = "$if(toc)$\n$toc$\n$endif$\n$body$"
+    }
     where mathExtensions = [Ext_tex_math_dollars, Ext_tex_math_double_backslash,
                           Ext_latex_macros]
+          otherExtensions = [ Ext_header_attributes, Ext_auto_identifiers]
           defaultExtensions = writerExtensions defaultHakyllWriterOptions
           newExtensions = foldr S.insert defaultExtensions mathExtensions

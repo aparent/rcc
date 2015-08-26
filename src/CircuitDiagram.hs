@@ -26,7 +26,7 @@ drawCirc :: Circuit -> Diagram B
 drawCirc c = hsep 0.0 [ txt
                       , gs # centerX <> ls
                       , txt
-                      ]
+                      ] # frame 1
   where gs = drawGates (gates c)
         ls = mconcat . map (mkLine.fromIntegral) $ [0..Circuit.size c]
           where mkLine y = hrule 1
