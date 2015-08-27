@@ -37,7 +37,11 @@ Subtraction can be done simply by reversing the addition circuit.
 
 #Multiplication
 
-Multiplication is done with a simple shift and add circuit:
+Multiplication is done with a simple shift and add circuit.
+An adder adding the variables $$a$$ and $$b$$ consists of a CDKM[@CDKM:2004] adder controlled on each bit of $$a$$.
+Each adder adds $$b$$ to some ancilla shifted left by the position of the control in $$a$$.
+Each adder is smaller then the last as the multiplication is preformed $$\mod 2^n$$.
+Below is an example of the compiler output for a multiplication:
 
 ```
 $mult$
@@ -45,10 +49,24 @@ $mult$
 
 ![](../images/mult.svg)
 
+#Division
+Unsigned division can be done with a long division algorithm.
+Long divsion where `N` is the numerator, `D` is the divisor, `Q` is the quotient, and `R` is the remainder. 
+```
+D != 0
+Q,R := 0                     
+for i = n-1..0 do
+    R := R << 1
+    R[0] := N[i]
+    if R >= D then
+        R := R - D
+        Q[i] := 1
+```
+
 #Conditional Statements
 
 Conditional if-else branches can be evaluated by swapping the bits to the correct circuit path controlled on the if conditional.
-The other circuit path is evaluated on a set of ancilla bits is initalized to:
+The other circuit path is evaluated on a set of ancilla bits is initialized to:
 \\[H^{\\otimes n}\\left|0\\right\\rangle\\]
 Since this is an eigenvector of every permutation matrix it will be unchanged and can be cleaned up by reversing the initialization.
 
