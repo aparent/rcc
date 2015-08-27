@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>jcc - The jcc Language</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">jcc</a>
+            </div>
+            <div id="navigation">
+                <a href="../docs.html">Docs</a>
+                <a href="https://github.com/aparent/jcc">Code</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>The jcc Language</h1>
+
+            <ul>
+<li><a href="#semicolons">Semicolons</a></li>
+<li><a href="#variables">Variables</a><ul>
+<li><a href="#initialization">Initialization</a></li>
+</ul></li>
+<li><a href="#in-place-modification">In-Place Modification</a></li>
+<li><a href="#arithmetic-expressions">Arithmetic Expressions</a></li>
+<li><a href="#conditionals">Conditionals</a></li>
+</ul>
+<p>jcc uses a language based on a modified version of Janus.</p>
+<h1 id="semicolons">Semicolons</h1>
+<p>Semicolons are used at the end of each statement. This allows parsing without whitespace dependence.</p>
+<h1 id="variables">Variables</h1>
+<p>Declared variables which are not initialized can be thought of as the inputs to the circuit. ##Declaration Variables are initialized by typing their name on a line. For example:</p>
+<pre><code>a b;</code></pre>
+<p>Will declare the variables <code>x1</code> and <code>x2</code>.</p>
+<h2 id="initialization">Initialization</h2>
+<p>Variables can be initialized to some value. This can be useful for testing a circuit. For example</p>
+<pre><code>a = 5;
+a ^= 1;
+</code></pre>
+<p>Compiles to: <img src="../images/varInit.svg" alt /></p>
+<h1 id="in-place-modification">In-Place Modification</h1>
+<p>Addition, subtraction, and bitwise XOR are all operations that can be preformed in place. So the <code>+=</code>, <code>-=</code>, and <code>^=</code> operators are all used preform in-place modifications to the LHS variable. For example:</p>
+<pre><code>a b;
+a += b;
+</code></pre>
+<p><img src="../images/add.svg" alt /> In this example <span class="math inline">\(b\)</span> is unmodified and <span class="math inline">\(a\)</span> becomes <span class="math inline">\(a+b\mod n\)</span>. Note that no additional ancilla are used. These modification statements very important for accumulating information about a computation as it is preformed without allocating additional space.</p>
+<h1 id="arithmetic-expressions">Arithmetic Expressions</h1>
+<p>Some more complex operations are not preformed in place. For example:</p>
+<pre><code>a b c;
+a ^= b*(c+2);
+</code></pre>
+<p><img src="../images/aExpr.svg" alt /> Here we see that the expression is generated. The result is then applied to <span class="math inline">\(a\)</span> with a bitwise XOR. Generating the expression requires a temporary allocation of ancilla in excess of the space allocated for variables. This ancilla is however completely cleaned up afterword.</p>
+<h1 id="conditionals">Conditionals</h1>
+<p>The general structure of an <code>if</code> conditional is as follows:</p>
+<pre><code>if &lt;cond&gt; then
+  &lt;statements&gt;
+else
+  &lt;statements&gt;
+fi &lt;assertion&gt;</code></pre>
+<p>The assertion must be a statement that is true if and only if the first branch was taken. In this case it is up to the programmer to correctly choose a conditional. This can be tested by running simulations of possible input data. Failure to fully clean up ancilla would indicate a possibly incorrect assertion.</p>
+<div class="references">
+
+</div>
+        </div>
+        <div id="footer">
+        </div>
+    </body>
+</html>

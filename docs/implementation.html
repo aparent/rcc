@@ -6,6 +6,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <title>jcc - Implementation Details</title>
         <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
     </head>
     <body>
         <div id="header">
@@ -21,10 +22,20 @@
         <div id="content">
             <h1>Implementation Details</h1>
 
-            <h2 id="gate-set">Gate Set</h2>
+            <ul>
+<li><a href="#gate-set">Gate Set</a></li>
+<li><a href="#addition">Addition</a></li>
+<li><a href="#subtraction">Subtraction</a></li>
+<li><a href="#multiplication">Multiplication</a></li>
+<li><a href="#division">Division</a></li>
+<li><a href="#conditional-statements">Conditional Statements</a></li>
+<li><a href="#loops">Loops</a></li>
+</ul>
+<p>This document contains technical details about the implementation of jcc.</p>
+<h1 id="gate-set">Gate Set</h1>
 <p>The gate set used by the compiler includes the NOT, CNOT, and Toffoli gates.</p>
-<p>When choosing the implementation of various operations consideration is given to the expansion into the clifford+T gate set. More sepcifically to the minizmization of T-gates. For example shared controls on toffoli gates are desired as they result in T cancellation.</p>
-<h2 id="addition">Addition</h2>
+<p>When choosing the implementation of various operations consideration is given to the expansion into the Clifford+T gate set. More specifically to the minimization of T-gates. For example shared controls on Toffoli gates are desired as they result in T cancellation.</p>
+<h1 id="addition">Addition</h1>
 <p>Addition is done using the CDKM<span class="citation"> [1]</span> adder as shown below:</p>
 <pre><code>a b;
 a += b;
@@ -35,11 +46,11 @@ a += b;
 </div>
 <p>The final carry bit is not computed in this adder. The result is an adder which computes:</p>
 <p>\[ a + b \mod 2^n \]</p>
-<p>This is very similar to the classic ripple adder. The main improvement is the realization that information about the carry can be stored in one of the input bits of each column. This allows it to overwrite one of it’s inputs with the resulting sum.</p>
-<h2 id="subtraction">Subtraction</h2>
+<p>This is very similar to the classic ripple adder. The main improvement is the realization that information about the carry can be stored in one of the input bits of each column. This allows it to overwrite one of its inputs with the resulting sum.</p>
+<h1 id="subtraction">Subtraction</h1>
 <p>Subtraction can be done simply by reversing the addition circuit.</p>
-<h2 id="multiplication">Multiplication</h2>
-<p>Multiplication is done with a simple shift and add circuit:</p>
+<h1 id="multiplication">Multiplication</h1>
+<p>Multiplication is done with a simple shift and add circuit. An adder adding the variables <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> consists of a CDKM<span class="citation"> [1]</span> adder controlled on each bit of <span class="math inline">\(a\)</span>. Each adder adds <span class="math inline">\(b\)</span> to some ancilla shifted left by the position of the control in <span class="math inline">\(a\)</span>. Each adder is smaller then the last as the multiplication is preformed <span class="math inline">\(\mod 2^n\)</span>. Below is an example of the compiler output for a multiplication:</p>
 <pre><code>a b c;
 c += a*b;
 </code></pre>
@@ -47,8 +58,18 @@ c += a*b;
 <img src="../images/mult.svg" alt />
 
 </div>
-<h2 id="conditional-statments">Conditional Statments</h2>
-<p>Conditional if-else branches can be evaluated by evaluating the conditional statement then swapping the bits to the correct circuit path controlled on the result.</p>
+<h1 id="division">Division</h1>
+<p>Unsigned division can be done with a long division algorithm. Long divsion where <code>N</code> is the numerator, <code>D</code> is the divisor, <code>Q</code> is the quotient, and <code>R</code> is the remainder.</p>
+<pre><code>D != 0
+Q,R := 0                     
+for i = n-1..0 do
+    R := R &lt;&lt; 1
+    R[0] := N[i]
+    if R &gt;= D then
+        R := R - D
+        Q[i] := 1</code></pre>
+<h1 id="conditional-statements">Conditional Statements</h1>
+<p>Conditional if-else branches can be evaluated by swapping the bits to the correct circuit path controlled on the if conditional. The other circuit path is evaluated on a set of ancilla bits is initialized to: \[H^{\otimes n}\left|0\right\rangle\] Since this is an eigenvector of every permutation matrix it will be unchanged and can be cleaned up by reversing the initialization.</p>
 <pre><code>a b;
 if a &lt; b then
   a += b;
@@ -60,6 +81,11 @@ fi a &gt; b;
 <img src="../images/ifExample.svg" alt />
 
 </div>
+<p>Note that the assertion is a statement about the state of the program which is true id and only if the <code>if</code> branch is taken rather then the <code>else</code> branch. This is useful as it describes a property of our data that can be used to clean up the bit used to store the result of the conditional. i.e. If we know that we took that <code>if</code> branch rather then the <code>else</code> branch we can XOR the conditional bit and be assured it is being reset to zero.</p>
+<h1 id="loops">Loops</h1>
+<p>In the circuit model we need to implement all loop operations up to some max bound. This is especially important in the Quantum model as some states in a superposition may require more loop iterations then others to evaluate.</p>
+<p>So to implement a loop we want to repeatedly preform some computation until a condition is met. We then want to stop preforming that computation for the remainder of the loop.</p>
+<p>Swapping out of the loop using as done in <a href="#conditional-statements">conditional statements</a> will not work since some of the superposition states will reset the condition bit.</p>
 <div class="references">
 <div id="ref-CDKM:2004">
 <p>[1] S. A. Cuccaro, T. G. Draper, S. A. Kutin, and D. P. Moulton, (2004).</p>
