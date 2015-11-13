@@ -9,7 +9,8 @@ import Data.List (foldl')
 
 import Circuit
 
-targetRad, charSize, ctrlRad, colSpace :: Double
+lWidth, targetRad, charSize, ctrlRad, colSpace :: Double
+lWidth = 0.07
 targetRad = 0.5
 charSize = 1
 ctrlRad = 0.2
@@ -29,10 +30,9 @@ drawCirc c = hsep 0.0 [ txt
                       ] # frame 1
   where gs = drawGates (gates c)
         ls = mconcat . map (mkLine.fromIntegral) $ [0..Circuit.size c]
-          where mkLine y = hrule 1
-                         # lw thin
+          where mkLine y = ( hrule . width ) gs
+                         # lwL lWidth
                          # lc grey
-                         # sizedAs gs
                          # translateY y
         txt = mconcat . zipWith placeText (lineNames c) $ map fromIntegral [0..length (lineNames c)]
           where placeText s y = (mkText s <> phantom (rect 4 1 :: D V2 Double))
@@ -63,7 +63,7 @@ drawH t = (symb <> base)  # translateY t
 
 
 drawCnot :: Double -> [Double] -> Diagram B
-drawCnot t cs =  circle targetRad # lw thin  # translateY t
+drawCnot t cs =  circle targetRad # lwL lWidth # translateY t
               <> controls
               <> line
   where line = drawLine 0 (top - bottom)
@@ -93,7 +93,7 @@ drawSwap t1 t2 cs = targ # translateY t1
         controls = mconcat . map drawCtrl $ cs
 
 drawLine :: Double -> Double -> Diagram B
-drawLine x y = fromSegments [straight $ r2(x,y) ] # lw thin
+drawLine x y = fromSegments [straight $ r2(x,y) ] # lwL lWidth
 
 lineNames :: Circuit -> [String]
 lineNames circ = concatMap inputStrings $ inputs circ
