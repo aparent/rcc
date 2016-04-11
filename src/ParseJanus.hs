@@ -34,6 +34,7 @@ data ABinOp = Add
             | Mod
             | And
             | Or
+            | RRot
 
 -- | Binary operators
 data BBinOp = BAnd
@@ -120,6 +121,7 @@ instance Show ABinOp where
     Mod  -> "%"
     And  -> "&"
     Or   -> "|"
+    RRot -> ">>>"
 
 instance Show Janus where
   show (Janus (decl,stmt)) = declStr decl ++ ";\n" ++ show stmt
@@ -175,7 +177,7 @@ lexer = Token.makeTokenParser languageDef
                                , Token.reservedOpNames = ["-=", "+=", "^="
                                                         , "+", "-", "*", "^", "%", "/", "&", "|"
                                                         , "=" , "<=", ">=", "!=", "<", ">"
-                                                        , "||", "&&", "<=>"
+                                                        , "||", "&&", "<=>", ">>>"
                                                         ]
                                }
 
@@ -255,6 +257,9 @@ aExpression = buildExpressionParser aOperators aTerm
                 Var <$> identifier <|>
                 Const <$> integer
         aOperators = [
+                       [
+                         Infix (reservedOp ">>>" >> return (ABinary RRot)) AssocLeft
+                       ],
                        [
                          Infix (reservedOp "*" >> return (ABinary Mult)) AssocLeft,
                          Infix (reservedOp "/" >> return (ABinary Div)) AssocLeft,

@@ -7,7 +7,6 @@ import Prelude
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
---import Control.Applicative hiding (Const)
 import Control.Exception
 import Data.Maybe
 import Data.List(nub)
@@ -175,6 +174,11 @@ varsModInStmt stmt =
     SwapStmt a b -> [a,b]
     Seq ss -> concatMap varsModInStmt ss
 
+
+rotate :: Integer -> [a] -> [a]
+rotate n' xs = take (length xs) (drop n (cycle xs))
+    where n = fromIntegral n'
+
 genAExpr :: AExpr -> Gen [Int]
 genAExpr expr = do
   vmap <- varMap <$> ask
@@ -186,15 +190,26 @@ genAExpr expr = do
     Var v -> return $ fromJust $ traceShow (v,vmap) $ lookup v vmap
     ABinary op exprA exprB -> applyOp op exprA exprB
   where applyOp op opExprA opExprB =
-          do a <- genAExpr opExprA
-             b <- genAExpr opExprB
-             case op of
-               Add  -> applyIPBinOp add a b
-               Sub  -> applyIPBinOp sub a b
-               Xor  -> applyIPBinOp xor a b
-               Mult -> applyOPBinOp mult a b
-               _ -> return a
-
+            case op of
+               Add  -> do
+                 (a,b) <- genExprs
+                 applyIPBinOp add a b
+               Sub  -> do
+                 (a,b) <- genExprs
+                 applyIPBinOp sub a b
+               Xor  -> do
+                 (a,b) <- genExprs
+                 applyIPBinOp xor a b
+               Mult -> do
+                 (a,b) <- genExprs
+                 applyOPBinOp mult a b
+               RRot ->
+                 case opExprB of
+                    Const n ->
+                       rotate n <$> genAExpr opExprA
+                    _ -> error "Only rotations by constants are supported"
+               _ -> genAExpr opExprA
+            where genExprs = (,) <$> genAExpr opExprA <*> genAExpr opExprB
         applyCopy :: [Int] -> Gen [Int]
         applyCopy a =
           do intS <- intSize <$> ask
