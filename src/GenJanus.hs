@@ -203,6 +203,9 @@ genAExpr expr = do
                Mult -> do
                  (a,b) <- genExprs
                  applyOPBinOp mult a b
+               And -> do
+                 (a,b) <- genExprs
+                 applyOPBinOp bitwiseAnd a b
                RRot ->
                  case opExprB of
                     Const n ->
@@ -360,6 +363,10 @@ greaterThan c t a b = lessThan c t b a
 mult :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 mult _ [] _ _ = []
 mult c as bs rs = ctrlAdd c (head as) bs rs ++ mult c (tail as) (init bs) (tail rs)
+
+bitwiseAnd :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
+bitwiseAnd _ a b c = zipWith3 Toff a b c
+
 
 --divide :: Int -> [Int] -> [Int] -> [Int] -> [Gate]
 --divide as bs rs = undefined
