@@ -1,13 +1,16 @@
-# jcc
-##Janus Circuit Compiler
+# rcc
 
-This compiler is based on a slightly modified version of the Janus programming langange.
+## Reversible Circuit Compiler
+
+See [webpage](http://aparent.github.io/rcc/) for more details and sample output.
+
+This compiler is based on a slightly modified version of the Janus programming language.
 Below are some references:
 
 - [A reversible programming language and its invertible self-interpreter](http://doi.acm.org/10.1145/1244381.1244404)
 - [JANUS: A Time-Reversible Language](http://www.tetsuo.jp/ref/janus.pdf)
 
-##Installing
+## Installing
 
 Create a sandbox (recommended) with:
 
@@ -23,7 +26,7 @@ Now build the actual project using:
 
 It will place the jcc binary in `dist/build/jcc/jcc`.
 
-##Useage
+## Usage
 
 For help use:
 
@@ -45,7 +48,6 @@ x1 += x2;
 x2 ^= x1;
 ```
 
-Note if-statments are currently implemented but do not work correctly.
+Note if-statements are currently implemented but do not work correctly.
 This will be fixed when hadamard gates are added to the gate set and simulator.
 
-Check the [webpage](http://aparent.github.io/rcc/) for example output.
